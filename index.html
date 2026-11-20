@@ -16,7 +16,19 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
+
+    <!-- play the intro once per session -->
+    <script>
+      try {
+        if (
+          !sessionStorage.getItem("introPlayed") &&
+          !matchMedia("(prefers-reduced-motion: reduce)").matches
+        )
+          document.documentElement.classList.add("intro");
+      } catch (e) {}
+    </script>
   </head>
+
   <body>
     <!-- ============ HEADER ============ -->
     <header class="header">
@@ -38,6 +50,7 @@
       <button
         class="menu-toggle"
         id="menuToggle"
+        type="button"
         aria-label="Toggle menu"
         aria-expanded="false"
         aria-controls="nav"
@@ -49,7 +62,8 @@
     <main>
       <!-- ============ HERO ============ -->
       <section class="hero" id="home">
-        <!-- Background video (optional): put your files in assets/video/. If they are missing, the live background below shows instead. -->
+        <!-- Optional video background. Put hero-bg.webm in assets/video/.
+             If the file is missing, the live background below shows instead. -->
         <video
           class="hero__video"
           id="heroVideo"
@@ -58,31 +72,66 @@
           loop
           playsinline
           preload="metadata"
-          poster="assets/video/hero-poster.jpg"
           aria-hidden="true"
         >
           <source src="assets/video/hero-bg.webm" type="video/webm" />
-          <source src="/images/herobgvi.mp4" type="video/mp4" />
         </video>
         <div class="hero__overlay" aria-hidden="true"></div>
 
-        <!-- Live background: default look, and the fallback when no video file loads -->
+        <!-- Live background: default look, and the fallback when no video loads -->
         <div class="hero__live" aria-hidden="true">
-          <div class="live__fog live__fog--1"></div>
-          <div class="live__fog live__fog--2"></div>
-          <div class="live__fog live__fog--3"></div>
-          <div class="live__spot"></div>
-          <div class="live__lines"></div>
-          <canvas class="live__streaks" id="liveStreaks"></canvas>
-          <div class="live__grain"></div>
+          <div class="radar">
+            <div class="radar__axis radar__axis--h"></div>
+            <div class="radar__axis radar__axis--v"></div>
+
+            <div class="radar__ring" style="--k: 0.34; --i: 0"></div>
+            <div class="radar__ring" style="--k: 0.56; --i: 1"></div>
+            <div class="radar__ring" style="--k: 0.82; --i: 2"></div>
+
+            <div class="radar__orbit-wrap">
+              <div class="radar__orbit"></div>
+            </div>
+
+            <div class="radar__pulses">
+              <i class="radar__pulse"></i>
+              <i class="radar__pulse"></i>
+              <i class="radar__pulse"></i>
+            </div>
+
+            <div class="radar__burst"></div>
+          </div>
         </div>
 
         <h1 class="hero__title"><span>EMMANUELLE</span> <span>ALEGA</span></h1>
 
+        <!-- Portrait: dark by default, lit only inside the moving spotlight -->
         <figure class="hero__photo">
-          <!-- Save your cutout image as assets/hero.png -->
-          <img src="images/me5.png" alt="Portrait of Emmanuelle Alega" />
+          <div class="photo__stack" id="photoStack">
+            <img
+              class="photo__base"
+              src="images/hero.png"
+              alt="Portrait of Emmanuelle Alega"
+              draggable="false"
+            />
+            <img
+              class="photo__lit"
+              src="images/hero.png"
+              alt=""
+              aria-hidden="true"
+              draggable="false"
+            />
+            <div class="photo__beam" aria-hidden="true"></div>
+          </div>
         </figure>
+
+        <!-- Shared SVG filter that cleans the semi-transparent edge of the cutout -->
+        <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+          <filter id="cleanAlpha" color-interpolation-filters="sRGB">
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="3.5" intercept="-1" />
+            </feComponentTransfer>
+          </filter>
+        </svg>
 
         <div class="hero__content">
           <p class="hero__text">
@@ -92,57 +141,60 @@
           <a href="#about" class="btn btn--light">Learn more</a>
         </div>
 
-        <!-- Badges -->
+        <!-- Badges: JS repeats this group until it is wider than the screen,
+             then adds one clone so the loop is endless. -->
         <div class="badges" aria-label="Areas of work">
-          <ul class="badges__track" id="badgesTrack">
-            <li class="badge">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="13" rx="2" />
-                <path d="M8 21h8M12 17v4" />
-              </svg>
-              Web Apps
-            </li>
-            <li class="badge">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8 7l-5 5 5 5M16 7l5 5-5 5" />
-              </svg>
-              React &amp; Node.js
-            </li>
-            <li class="badge">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <ellipse cx="12" cy="5" rx="8" ry="3" />
-                <path
-                  d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"
-                />
-              </svg>
-              Databases
-            </li>
-            <li class="badge">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="3" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" />
-                <rect x="14" y="14" width="7" height="7" rx="1" />
-              </svg>
-              ERP &amp; HRIS
-            </li>
-            <li class="badge">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="7" y="7" width="10" height="10" rx="1.5" />
-                <path
-                  d="M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4"
-                />
-              </svg>
-              IoT Systems
-            </li>
-            <li class="badge">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3 8l3-3h8l2 3h5v8H3z" />
-                <circle cx="10" cy="12" r="2.5" />
-              </svg>
-              CCTV &amp; Networking
-            </li>
-          </ul>
+          <div class="badges__track" id="badgesTrack">
+            <ul class="badges__group" id="badgesGroup">
+              <li class="badge">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="13" rx="2" />
+                  <path d="M8 21h8M12 17v4" />
+                </svg>
+                Web Apps
+              </li>
+              <li class="badge">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 7l-5 5 5 5M16 7l5 5-5 5" />
+                </svg>
+                React &amp; Node.js
+              </li>
+              <li class="badge">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <ellipse cx="12" cy="5" rx="8" ry="3" />
+                  <path
+                    d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"
+                  />
+                </svg>
+                Databases
+              </li>
+              <li class="badge">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                ERP &amp; HRIS
+              </li>
+              <li class="badge">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="7" y="7" width="10" height="10" rx="1.5" />
+                  <path
+                    d="M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4"
+                  />
+                </svg>
+                IoT Systems
+              </li>
+              <li class="badge">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 8l3-3h8l2 3h5v8H3z" />
+                  <circle cx="10" cy="12" r="2.5" />
+                </svg>
+                CCTV &amp; Networking
+              </li>
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -153,20 +205,25 @@
         data-theme="light"
         aria-labelledby="projectsTitle"
       >
-        <!-- Main background image is set in css/style.css (.projects). Project screenshots are shown in the framed window below. -->
+        <header class="projects__head">
+          <div>
+            <p class="projects__eyebrow">Selected work</p>
+            <h2 class="projects__heading" id="projectsTitle">Projects</h2>
+          </div>
+          <div class="projects__meta">
+            <span class="projects__count" id="projectsCount" aria-hidden="true"
+              >01 / 01</span
+            >
+            <p class="projects__intro">
+              Websites and systems I've built, from company sites to an HRIS
+              payroll module.
+            </p>
+          </div>
+        </header>
 
         <div class="projects__inner">
           <div class="projects__nav" id="projectsNav">
-            <div class="projects__label">
-              <h2 id="projectsTitle">Projects</h2>
-              <span
-                class="projects__count"
-                id="projectsCount"
-                aria-hidden="true"
-                >01 / 01</span
-              >
-            </div>
-
+            <!-- label div removed -->
             <button
               class="projects__arrow"
               id="projPrev"
@@ -197,7 +254,6 @@
             </div>
             <div class="frame__screen is-empty" id="projScreen">
               <img class="frame__img" alt="" />
-              <img class="frame__img" alt="" />
             </div>
           </figure>
 
@@ -209,6 +265,7 @@
           </article>
         </div>
       </section>
+
       <!-- ============ SKILLS & CERTIFICATES ============ -->
       <section class="skills" id="skills" aria-labelledby="skillsTitle">
         <div class="skills__inner">
@@ -287,7 +344,6 @@
             </div>
 
             <!-- RIGHT: achievement + certificates -->
-            <!-- RIGHT: achievement + certificates -->
             <div class="skills__col">
               <h3 class="col-label reveal">
                 Certificates &amp; achievements <span>03</span>
@@ -340,6 +396,7 @@
           </div>
         </div>
       </section>
+
       <!-- ============ ABOUT ============ -->
       <section class="about" id="about" aria-labelledby="aboutTitle">
         <!-- LEFT: dark panel -->
@@ -435,13 +492,13 @@
           <div class="about__arch rise" aria-hidden="true"></div>
 
           <figure class="about__photo rise">
-            <!-- Save a cutout as assets/about.png. Until then it falls back to the hero photo. -->
+            <!-- Falls back to the hero photo if about (1).png is missing -->
             <img
               src="images/about (1).png"
               alt="Portrait of Emmanuelle Alega"
               onerror="
                 this.onerror = null;
-                this.src = 'assets/hero.png';
+                this.src = 'images/hero.png';
               "
             />
           </figure>
@@ -454,6 +511,7 @@
           >
         </div>
       </section>
+
       <!-- ============ CONTACT / FOOTER ============ -->
       <footer class="contact" id="contact" aria-labelledby="contactTitle">
         <div class="contact__inner">
@@ -531,7 +589,7 @@
             </ul>
           </div>
 
-          <div class="contact__bar">
+          <div class="contact__bar reveal">
             <a href="#home" class="logo">EMMANUELLE <em>ALEGA</em></a>
             <p>&copy; 2026 Emmanuelle D. Alega. All rights reserved.</p>
             <a href="#home" class="contact__totop">Back to top &uarr;</a>
