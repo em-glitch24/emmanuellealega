@@ -1821,7 +1821,7 @@ img {
     linear-gradient(180deg, var(--bg) 0%, transparent 25%),
     /* dark tint: raise 0.82 for darker, lower to show more image */
     linear-gradient(rgba(14, 15, 17, 0.82), rgba(14, 15, 17, 0.82)),
-    url("../images/contact.jpg") center / cover no-repeat,
+    url("../images/footer.jpg") center / cover no-repeat,
     var(--bg);
 }
 .contact::after {
