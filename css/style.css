@@ -306,18 +306,28 @@ img {
   );
 }
 
-/* optional video background: invisible until the file really loads */
-.hero__video {
+/* HERO BACKGROUND, 3 plans. JS sets data-bg on .hero to the best one that
+   really loaded, so a missing file never leaves a blank hero:
+     A  data-bg="video"  .hero__video   (assets/video/hero-bg.webm)
+     B  data-bg="image"  .hero__image   (images/hero-bg.jpg, see data-src)
+     C  data-bg="live"   .hero__live    (CSS radar, always the last resort) */
+.hero__video,
+.hero__image {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
-  filter: saturate(0.85) brightness(0.75);
   pointer-events: none;
   opacity: 0;
+  filter: saturate(0.85) brightness(0.75);
   transition: opacity 0.9s ease;
+}
+.hero__video {
+  object-fit: cover;
+  object-position: center;
+}
+.hero__image {
+  background: center / cover no-repeat; /* url is set by JS after it loads */
 }
 .hero__overlay {
   position: absolute;
@@ -334,12 +344,57 @@ img {
     ),
     rgba(23, 25, 28, 0.45);
 }
-.hero.has-video .hero__video,
-.hero.has-video .hero__overlay {
+.hero[data-bg="video"] .hero__video,
+.hero[data-bg="image"] .hero__image,
+.hero[data-bg="video"] .hero__overlay,
+.hero[data-bg="image"] .hero__overlay {
   opacity: 1;
 }
 
-/* live background (default, and fallback when no video loads) */
+/* floating dust: a few tiny specks drifting up over the image (plan B only).
+   JS creates the <i> specks and sets --x --y --s --o --t --d --dx on each. */
+.hero__dust {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+.hero[data-bg="image"] .hero__dust {
+  opacity: 1;
+}
+.hero__dust i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: #d6dbff;
+  box-shadow: 0 0 5px rgba(190, 196, 255, 0.5);
+  opacity: 0;
+  animation: dustFloat var(--t) ease-in-out var(--d) infinite;
+}
+.hero__dust.is-paused i {
+  animation-play-state: paused;
+}
+@keyframes dustFloat {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  20%,
+  75% {
+    opacity: var(--o);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), -28svh);
+  }
+}
+
+/* plan C: live background (default, and the fallback when nothing else loads) */
 .hero__live {
   position: absolute;
   inset: 0;
@@ -350,7 +405,8 @@ img {
     opacity 0.9s ease,
     visibility 0s;
 }
-.hero.has-video .hero__live {
+.hero[data-bg="video"] .hero__live,
+.hero[data-bg="image"] .hero__live {
   opacity: 0;
   visibility: hidden;
   transition:
@@ -2507,7 +2563,8 @@ img {
   .about__badge > svg {
     animation: none;
   }
-  .hero__video {
+  .hero__video,
+  .hero__dust {
     display: none;
   }
 }

@@ -113,19 +113,61 @@ if (heroLive && canHover && !reduceMotion) {
   });
 }
 
-// The live CSS background is the default. It is only replaced once the video
-// file has really loaded, so a missing video never leaves a blank hero.
+// HERO BACKGROUND: plan A video, plan B image, plan C the live CSS radar.
+// Waves are the default. Each plan only takes over once its file has really
+// loaded, and the page falls back to the next plan if it fails or stalls,
+// so a missing file never leaves a blank hero.
 (() => {
   const video = document.getElementById("heroVideo");
+  const image = document.getElementById("heroImage");
+  const IMAGE_URL = image && image.dataset.src;
+
   let videoReady = false;
+  let imageReady = false;
+
+  // floating dust: a handful of tiny specks over the image. Kept minimal
+  // on purpose (fewer on phones) and skipped for reduced motion.
+  let dust = null;
+  if (!reduceMotion) {
+    dust = document.createElement("div");
+    dust.className = "hero__dust";
+    dust.setAttribute("aria-hidden", "true");
+    hero.querySelector(".hero__overlay").after(dust);
+
+    const small = window.matchMedia("(max-width: 900px)");
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const buildDust = () => {
+      const count = small.matches ? 7 : 14;
+      dust.replaceChildren(
+        ...Array.from({ length: count }, () => {
+          const el = document.createElement("i");
+          el.style.cssText = [
+            `--x:${rand(4, 96).toFixed(1)}%`,
+            `--y:${rand(35, 100).toFixed(1)}%`,
+            `--s:${rand(1, 2.2).toFixed(1)}px`,
+            `--o:${rand(0.2, 0.5).toFixed(2)}`,
+            `--t:${rand(18, 32).toFixed(1)}s`,
+            `--d:-${rand(0, 30).toFixed(1)}s`,
+            `--dx:${rand(-30, 30).toFixed(0)}px`,
+          ].join(";");
+          return el;
+        }),
+      );
+    };
+    buildDust();
+    small.addEventListener("change", buildDust);
+  }
 
   function sync() {
-    hero.classList.toggle("has-video", videoReady);
+    const bg = videoReady ? "video" : imageReady ? "image" : "live";
+    hero.dataset.bg = bg;
+    if (dust) dust.classList.toggle("is-paused", !heroVisible);
     if (!video) return;
-    if (videoReady && heroVisible) video.play().catch(() => {});
+    if (bg === "video" && heroVisible) video.play().catch(() => {});
     else video.pause();
   }
 
+  // plan A: video (skipped when the visitor prefers reduced motion)
   if (video && !reduceMotion) {
     const setReady = (ok) => {
       videoReady = ok;
@@ -137,6 +179,21 @@ if (heroLive && canHover && !reduceMotion) {
     video.addEventListener("stalled", () => {
       if (video.readyState < 2) setReady(false);
     });
+  }
+
+  // plan B: image (probed first, so a missing file never shows a broken box)
+  if (image && IMAGE_URL) {
+    const probe = new Image();
+    probe.onload = () => {
+      image.style.backgroundImage = `url("${IMAGE_URL}")`;
+      imageReady = true;
+      sync();
+    };
+    probe.onerror = () => {
+      imageReady = false;
+      sync();
+    };
+    probe.src = IMAGE_URL;
   }
 
   if (hasObserver) {
