@@ -831,15 +831,13 @@ armReveal("contact", (i) => i * 80);
 })();
 
 /* ==========================================================================
-   INTRO: PLAY ONCE PER SESSION
+   INTRO: PLAY ON EVERY PAGE LOAD
    ========================================================================== */
 (() => {
   const root = document.documentElement;
   if (!root.classList.contains("intro")) return;
-  try {
-    sessionStorage.setItem("introPlayed", "1");
-  } catch {}
-  setTimeout(() => root.classList.remove("intro"), 3200); // after the longest entrance
+
+  setTimeout(() => root.classList.remove("intro"), 3200);
 })();
 
 /* SILK: stop the SVG sheen for reduced motion and while the hero is off-screen */
