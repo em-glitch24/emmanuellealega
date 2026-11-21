@@ -300,8 +300,8 @@ img {
   overflow: hidden;
   background: radial-gradient(
     ellipse at 50% 30%,
-    #3a3f48 0%,
-    #262a30 45%,
+    #2e3137 0%,
+    #1f2227 45%,
     #14161a 85%
   );
 }
