@@ -137,7 +137,7 @@ if (heroLive && canHover && !reduceMotion) {
     const small = window.matchMedia("(max-width: 900px)");
     const rand = (a, b) => a + Math.random() * (b - a);
     const buildDust = () => {
-      const count = small.matches ? 7 : 14;
+      const count = small.matches ? 14 : 28;
       dust.replaceChildren(
         ...Array.from({ length: count }, () => {
           const el = document.createElement("i");
