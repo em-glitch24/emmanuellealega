@@ -419,11 +419,11 @@ img {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, transparent 55%, rgba(14, 15, 17, 0.55) 100%),
+    linear-gradient(180deg, transparent 55%, rgba(14, 15, 17, 0.834) 100%),
     radial-gradient(
       ellipse at 50% 40%,
       transparent 50%,
-      rgba(14, 15, 17, 0.4) 100%
+      rgba(14, 15, 17, 0.779) 100%
     );
 }
 
@@ -497,7 +497,7 @@ img {
   --sx: 50%;
   --sy: 40%;
   --r: 0px;
-  --dim: 0.6; /* desktop only. 0 = black, 1 = original brightness */
+  --dim: 0.5;
   position: relative;
   height: 100%;
 }
@@ -566,6 +566,176 @@ img {
   max-width: 21rem;
   font-size: clamp(0.95rem, 1.2vw, 1.1rem);
   color: var(--text);
+}
+/* ===== LEARN MORE: expands into section icons on hover ===== */
+.learn {
+  position: relative;
+  flex: none;
+  width: 13.5rem;
+  height: 3.6rem;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 40px var(--glow);
+  transition: box-shadow 0.3s;
+}
+.learn:hover,
+.learn:has(:focus-visible) {
+  box-shadow: 0 0 56px var(--glow);
+}
+
+/* the dark pill with the text; it shrinks to nothing on hover */
+.learn__label {
+  position: absolute;
+  top: 0.3rem;
+  bottom: 0.3rem;
+  left: 50%;
+  width: calc(100% - 0.6rem);
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: var(--bg);
+  border-radius: 999px;
+  transition:
+    width 0.5s var(--ease),
+    opacity 0.3s ease 0.1s;
+}
+.learn:hover .learn__label,
+.learn:has(:focus-visible) .learn__label {
+  width: 0;
+  opacity: 0;
+}
+
+/* the icons, hidden until hover */
+.learn__icons {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s 0.3s;
+}
+.learn__icons li {
+  opacity: 0;
+  transform: translateY(8px) scale(0.6);
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s var(--ease);
+}
+.learn:hover .learn__icons,
+.learn:has(:focus-visible) .learn__icons {
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+.learn:hover .learn__icons li,
+.learn:has(:focus-visible) .learn__icons li {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.35s ease calc(0.15s + var(--i) * 0.06s),
+    transform 0.5s var(--ease) calc(0.15s + var(--i) * 0.06s);
+}
+
+.learn__icons a {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  color: var(--bg);
+  transition:
+    background 0.25s,
+    color 0.25s;
+}
+.learn__icons a:hover,
+.learn__icons a:focus-visible {
+  color: var(--accent);
+  background: rgba(61, 68, 255, 0.12);
+}
+.learn__icons svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* small name tooltip above each icon */
+.learn__icons a::after {
+  content: attr(data-label);
+  position: absolute;
+  bottom: calc(100% + 0.9rem);
+  left: 50%;
+  translate: -50% 4px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  color: var(--text);
+  background: rgba(14, 15, 17, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s,
+    translate 0.2s;
+}
+.learn__icons a:hover::after,
+.learn__icons a:focus-visible::after {
+  opacity: 1;
+  translate: -50% 0;
+}
+
+/* tablet / phone sizes */
+@media (max-width: 900px) {
+  .learn {
+    width: 11.5rem;
+    height: 3.1rem;
+  }
+  .learn__label {
+    font-size: 0.85rem;
+  }
+  .learn__icons a {
+    width: 2.3rem;
+    height: 2.3rem;
+  }
+}
+@media (max-width: 520px) {
+  .learn {
+    width: 9.5rem;
+    height: 2.8rem;
+  }
+  .learn__label {
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+  .learn__icons a {
+    width: 2rem;
+    height: 2rem;
+  }
+  .learn__icons svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+}
+
+/* touch screens have no hover, so keep a plain "Learn more" link there */
+@media (hover: none) {
+  .learn__icons {
+    display: none;
+  }
 }
 
 /* tablet & mobile: text LEFT, button RIGHT, so the face stays clear */
@@ -902,7 +1072,7 @@ img {
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1.2rem;
   padding: 0.55rem 1.05rem;
   font-size: 0.75rem;
   white-space: nowrap;
@@ -931,6 +1101,89 @@ img {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* ===== SILK (live background) ===== */
+.silk {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 88% 14%, #0d0e10 0%, transparent 70%),
+    radial-gradient(ellipse 70% 60% at 10% 95%, #000 0%, transparent 70%),
+    #060607;
+  translate: calc(var(--mx, 0px) * 0.15) calc(var(--my, 0px) * 0.15);
+  transition: translate 0.9s cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.silk__layer {
+  position: absolute;
+  left: -6%;
+  top: -6%;
+  width: 112%; /* extra size so drifting never shows an edge */
+  height: 120%;
+  will-change: transform;
+}
+.silk__layer--band {
+  animation: silkA 20s ease-in-out infinite alternate;
+}
+.silk__layer--lines {
+  animation: silkA 20s ease-in-out infinite alternate;
+} /* same as band so they stay aligned */
+.silk__layer--body {
+  animation: silkB 26s ease-in-out infinite alternate;
+}
+.silk__layer--core {
+  animation:
+    silkA 16s ease-in-out infinite alternate-reverse,
+    silkBreathe 9s ease-in-out infinite alternate;
+}
+@keyframes silkA {
+  from {
+    transform: translate3d(-1.4%, 0.8%, 0) scale(1.02);
+  }
+  to {
+    transform: translate3d(1.6%, -1%, 0) scale(1.06) rotate(0.35deg);
+  }
+}
+@keyframes silkB {
+  from {
+    transform: translate3d(1.2%, -0.6%, 0) scale(1.05);
+  }
+  to {
+    transform: translate3d(-1.4%, 1%, 0) scale(1.01) rotate(-0.3deg);
+  }
+}
+@keyframes silkBreathe {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.silk__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .8 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* plays with your existing intro */
+.intro .silk {
+  animation: introFade 1.6s ease 0.1s both;
+}
+
+.silk__layer {
+  transition: translate 0.9s cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+.silk__layer--body {
+  translate: calc(var(--mx, 0px) * 0.15) calc(var(--my, 0px) * 0.15);
+}
+.silk__layer--band,
+.silk__layer--lines {
+  translate: calc(var(--mx, 0px) * 0.35) calc(var(--my, 0px) * 0.35);
+}
+.silk__layer--core {
+  translate: calc(var(--mx, 0px) * 0.55) calc(var(--my, 0px) * 0.55);
 }
 
 /* ============ 9. PROJECTS ============ */
@@ -1538,6 +1791,120 @@ img {
   }
 }
 
+/* ---- mobile: vertical screenshot stack, next project peeks below ---- */
+.projects__stack {
+  display: none;
+}
+.projects.is-armed:not(.is-entered) .projects__stack {
+  opacity: 0;
+}
+.projects.is-entered .projects__stack {
+  animation: headRise 0.9s var(--ease) 0.25s backwards;
+}
+
+@media (max-width: 900px) {
+  .projects__frame {
+    display: none; /* the stack replaces it */
+  }
+  .projects__stack {
+    --peek: 52px; /* keep equal to PEEK in js/index.js */
+    order: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 75svh; /* fallback until JS measures the real height */
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+    touch-action: pan-y;
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      #000 calc(100% - var(--peek)),
+      rgba(0, 0, 0, 0.45) 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      #000 calc(100% - var(--peek)),
+      rgba(0, 0, 0, 0.45) 100%
+    );
+  }
+  .projects__stack::-webkit-scrollbar {
+    display: none;
+  }
+  .stack__slide {
+    flex: none;
+    margin: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 10px 24px -14px rgba(14, 15, 17, 0.3);
+    scroll-snap-align: start;
+    scroll-snap-stop: always; /* one swipe = one project */
+  }
+  .stack__slide .frame__screen {
+    aspect-ratio: var(--slide-ar, 16 / 10);
+    max-height: none;
+  }
+}
+
+@media (max-width: 900px) {
+  /* peek a bit more of the next screenshot (keep equal to PEEK in js) */
+  .projects__stack {
+    --peek: 88px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .stack__slide {
+    transform-origin: 50% 0;
+    will-change: transform, opacity;
+  }
+
+  /* pills: vertical roller, one pill centered, neighbours peek above and below */
+  .projects__list {
+    height: 140px;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    overflow: hidden;
+    scroll-snap-type: none;
+    touch-action: pan-y; /* the page still scrolls when you swipe here */
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent 0,
+      #000 30%,
+      #000 70%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      transparent 0,
+      #000 30%,
+      #000 70%,
+      transparent 100%
+    );
+  }
+  .project-item {
+    translate: 0 var(--shift, 0px); /* --shift is set by JS */
+    transition:
+      translate 0.55s var(--ease),
+      transform 0.45s var(--ease),
+      opacity 0.35s ease,
+      background 0.3s,
+      border-color 0.3s,
+      color 0.3s;
+  }
+  .project-item[data-dist="1"] {
+    transform: scale(0.92);
+  }
+  .project-item[data-dist="2"] {
+    transform: scale(0.85);
+  }
+}
+
 /* ============ 10. SKILLS & CERTIFICATES ============ */
 .skills {
   position: relative;
@@ -1852,7 +2219,7 @@ img {
    Mobile : panels STACK. The dark panel (text) is on top with a slanted
             bottom edge, the light panel (portrait) sits underneath.      */
 .about {
-  --cut: 5vw; /* desktop: how far the vertical diagonal leans */
+  --cut: clamp(110px, 16vw, 300px);
   --tilt: 0px; /* mobile: how steep the horizontal diagonal is */
   /* left edge of the 1280px content column used by the other sections */
   --edge: max(var(--gutter), calc((100vw - var(--maxw)) / 2));
@@ -1880,7 +2247,7 @@ img {
     var(--bg-soft) 48%,
     var(--bg) 100%
   );
-  clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
+  clip-path: inset(0 round 0 var(--cut) var(--cut) 0 / 0 50% 50% 0);
 }
 .about__dark::before {
   content: "";
@@ -2240,7 +2607,7 @@ img {
 
   .about__dark {
     padding: 6.5rem var(--gutter) calc(var(--tilt) + 3rem);
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--tilt)), 0 100%);
+    clip-path: inset(0 round 0 0 50% 50% / 0 0 var(--tilt) var(--tilt));
   }
   .about.is-armed .about__dark {
     --panel-from: translateY(-4%);
@@ -2556,6 +2923,7 @@ img {
     transition: none;
   }
   .badges__track,
+  .silk__layer,
   .radar__orbit,
   .radar__pulse,
   .about__aurora i,
@@ -2566,5 +2934,86 @@ img {
   .hero__video,
   .hero__dust {
     display: none;
+  }
+}
+
+.hero[data-bg="live"] .hero__dust {
+  opacity: 1;
+  z-index: 1;
+}
+
+@media (min-width: 901px) {
+  .about__dark {
+    filter: drop-shadow(18px 0 40px rgba(14, 15, 17, 0.35));
+  }
+}
+
+/* ===== ABOUT: floating card (option 3) ===== */
+.about {
+  --cut: 0px;
+  --tilt: 0px;
+}
+
+/* the light panel now fills the whole section */
+.about__light {
+  grid-area: 1 / 1 / -1 / -1;
+  margin: 0;
+}
+
+/* the dark panel becomes a rounded card floating over it */
+.about__dark {
+  grid-area: 1 / 1;
+  align-self: center;
+  margin: 6.5rem 1.5rem 3rem max(1rem, calc(var(--edge) - 1.5rem));
+  padding: 3.5rem 3rem;
+  overflow: hidden;
+  clip-path: none;
+  border-radius: 28px;
+  border: 1px solid var(--border);
+  box-shadow: 0 40px 80px -30px rgba(14, 15, 17, 0.55);
+}
+
+/* portrait, arch and chip now sit in the right part of the full panel */
+.about__arch,
+.about__photo {
+  left: 76%;
+}
+.about__arch {
+  width: min(30%, 380px);
+}
+.about__chip--1 {
+  left: 56%;
+}
+
+/* tablet and phone: card on top, portrait panel tucked underneath */
+@media (max-width: 900px) {
+  .about {
+    --tilt: 0px;
+  }
+  .about__dark {
+    grid-area: auto;
+    align-self: stretch;
+    margin: 5.5rem var(--gutter) 0;
+    padding: 2rem 1.5rem 2.25rem;
+    border-radius: 24px;
+  }
+  .about__light {
+    grid-area: auto;
+    margin: -2.5rem 0 0; /* portrait panel slides under the card */
+    padding-top: 2.5rem;
+    min-height: clamp(30rem, 120vw, 40rem);
+  }
+  .about__arch,
+  .about__photo {
+    left: 50%;
+  }
+  .about__arch {
+    width: min(72%, 320px);
+  }
+  .about__chip--1 {
+    left: var(--gutter);
+  }
+  .about__badge {
+    top: 4.5rem;
   }
 }

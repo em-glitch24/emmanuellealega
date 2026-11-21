@@ -443,6 +443,126 @@ if (heroLive && canHover && !reduceMotion) {
     return btn;
   });
 
+  // ---- mobile: vertical screenshot stack (next project peeks from below) ----
+  const PEEK = 88;
+  const stack = document.createElement("div");
+  stack.className = "projects__stack";
+  stack.setAttribute("aria-label", "Project screenshots: swipe up or down");
+
+  const slides = projects.map((p, i) => {
+    const slide = document.createElement("figure");
+    slide.className = "stack__slide";
+    slide.innerHTML = `
+      <div class="frame__bar" aria-hidden="true">
+        <span></span><span></span><span></span><em class="frame__url"></em>
+      </div>
+      <div class="frame__screen is-empty"><img class="frame__img" alt="" /></div>`;
+    slide.querySelector(".frame__url").textContent = p.title;
+
+    const shot = slide.querySelector(".frame__img");
+    const shotScreen = slide.querySelector(".frame__screen");
+    shot.addEventListener("load", () => {
+      shot.classList.add("is-on");
+      shotScreen.classList.remove("is-empty");
+      if (i === 0) {
+        // every slide uses the first screenshot's ratio, so they all match
+        stack.style.setProperty(
+          "--slide-ar",
+          `${shot.naturalWidth} / ${shot.naturalHeight}`,
+        );
+        sizeStack();
+      }
+    });
+    shot.alt = `${p.title} screenshot`;
+    shot.src = p.image;
+
+    stack.appendChild(slide);
+    return slide;
+  });
+  frame.before(stack);
+
+  // container height = one slide + the peek of the next
+  function sizeStack() {
+    stack.style.height = mobile.matches
+      ? `${slides[0].offsetHeight + PEEK}px`
+      : "";
+  }
+  new ResizeObserver(() => {
+    if (!mobile.matches) return;
+    sizeStack();
+    stackFx();
+    centerItem(active, false);
+  }).observe(slides[0]);
+  const stackStep = () =>
+    slides.length > 1 ? slides[1].offsetTop - slides[0].offsetTop : 1;
+  let stackLock = 0; // ignore scroll events while we scroll it ourselves
+
+  function stackTo(i, smooth) {
+    stackLock = performance.now() + (smooth ? 800 : 100);
+    stack.scrollTo({
+      top: i * stackStep(),
+      behavior: smooth ? "smooth" : "auto",
+    });
+  }
+
+  let stackTick = false;
+  stack.addEventListener(
+    "scroll",
+    () => {
+      if (stackTick || performance.now() < stackLock) return;
+      stackTick = true;
+      requestAnimationFrame(() => {
+        stackTick = false;
+        const i = Math.max(
+          0,
+          Math.min(
+            projects.length - 1,
+            Math.round(stack.scrollTop / stackStep()),
+          ),
+        );
+        if (i === active) return;
+        select(i, false, "stack");
+        lockUntil = performance.now() + 700; // keep the pill list from fighting back
+        centerItem(i, true);
+      });
+      // the next screenshot starts zoomed out and dim, then grows as it nears the top
+      const FX_SCALE = 0.86; // size of the neighbouring screenshots
+      const FX_OPACITY = 0.55;
+      let fxTick = false;
+
+      function stackFx() {
+        fxTick = false;
+        if (!mobile.matches) {
+          slides.forEach((s) => {
+            s.style.transform = "";
+            s.style.opacity = "";
+          });
+          return;
+        }
+        const step = stackStep();
+        slides.forEach((s, i) => {
+          const d = i - stack.scrollTop / step; // 0 = current, 1 = next, -1 = previous
+          const t = Math.min(Math.abs(d), 1);
+          s.style.transformOrigin = d > 0 ? "50% 0" : "50% 100%";
+          s.style.transform = `scale(${(1 - (1 - FX_SCALE) * t).toFixed(3)})`;
+          s.style.opacity = (1 - (1 - FX_OPACITY) * t).toFixed(3);
+        });
+      }
+      stack.addEventListener(
+        "scroll",
+        () => {
+          if (fxTick) return;
+          fxTick = true;
+          requestAnimationFrame(stackFx);
+        },
+        { passive: true },
+      );
+      mobile.addEventListener("change", stackFx);
+      stackFx();
+    },
+    { passive: true },
+  );
+
   // ---- description ----
   function setInfo(p) {
     kindEl.textContent = p.kind;
@@ -513,22 +633,24 @@ if (heroLive && canHover && !reduceMotion) {
   }
 
   function centerItem(i, smooth) {
-    const el = items[i];
-    const behavior = smooth ? "smooth" : "auto";
     if (mobile.matches) {
-      list.scrollTo({
-        left: el.offsetLeft - (list.clientWidth - el.offsetWidth) / 2,
-        behavior,
-      });
-    } else {
-      list.scrollTo({
-        top: el.offsetTop - (list.clientHeight - el.offsetHeight) / 2,
-        behavior,
-      });
+      // vertical roller: slide the pills so pill i sits in the middle
+      const h = items[0].offsetHeight;
+      const step =
+        items.length > 1 ? items[1].offsetTop - items[0].offsetTop : h;
+      list.style.setProperty(
+        "--shift",
+        `${list.clientHeight / 2 - h / 2 - i * step}px`,
+      );
+      return;
     }
+    list.scrollTo({
+      top: items[i].offsetTop - (list.clientHeight - items[i].offsetHeight) / 2,
+      behavior: smooth ? "smooth" : "auto",
+    });
   }
 
-  function select(i, scrollToIt) {
+  function select(i, scrollToIt, from) {
     i = Math.max(0, Math.min(projects.length - 1, i));
     if (i === active) return;
     const first = active === -1;
@@ -549,27 +671,22 @@ if (heroLive && canHover && !reduceMotion) {
       lockUntil = performance.now() + 700;
       centerItem(i, true);
     }
+    if (mobile.matches && from !== "stack") stackTo(i, !first);
   }
 
   // ---- scrolling / swiping the list picks the item nearest the centre ----
   list.addEventListener(
     "scroll",
     () => {
-      if (ticking || performance.now() < lockUntil) return;
+      if (mobile.matches || ticking || performance.now() < lockUntil) return;
       ticking = true;
       requestAnimationFrame(() => {
         ticking = false;
-        const horizontal = mobile.matches;
-        const mid = horizontal
-          ? list.scrollLeft + list.clientWidth / 2
-          : list.scrollTop + list.clientHeight / 2;
+        const mid = list.scrollTop + list.clientHeight / 2;
         let best = 0;
         let bestDist = Infinity;
         items.forEach((el, idx) => {
-          const c = horizontal
-            ? el.offsetLeft + el.offsetWidth / 2
-            : el.offsetTop + el.offsetHeight / 2;
-          const d = Math.abs(c - mid);
+          const d = Math.abs(el.offsetTop + el.offsetHeight / 2 - mid);
           if (d < bestDist) {
             bestDist = d;
             best = idx;
@@ -626,8 +743,11 @@ if (heroLive && canHover && !reduceMotion) {
     items[active].focus({ preventScroll: true });
   });
 
-  mobile.addEventListener("change", () => centerItem(active, false));
-
+  mobile.addEventListener("change", () => {
+    centerItem(active, false);
+    sizeStack();
+    if (mobile.matches) stackTo(active, false);
+  });
   // ---- entrance animation (.is-entered, not .is-in: the frame swap uses that) ----
   if (hasObserver && !reduceMotion) {
     section.classList.add("is-armed");
@@ -649,6 +769,7 @@ if (heroLive && canHover && !reduceMotion) {
       new Image().src = p.image; // warm the cache
     });
   });
+  window.addEventListener("load", () => centerItem(active, false));
 })();
 
 /* ==========================================================================
@@ -720,4 +841,21 @@ armReveal("contact", (i) => i * 80);
     sessionStorage.setItem("introPlayed", "1");
   } catch {}
   setTimeout(() => root.classList.remove("intro"), 3200); // after the longest entrance
+})();
+
+/* SILK: stop the SVG sheen for reduced motion and while the hero is off-screen */
+(() => {
+  const svgs = document.querySelectorAll(".silk__layer");
+  if (!svgs.length) return;
+  if (reduceMotion) {
+    svgs.forEach((s) => s.pauseAnimations && s.pauseAnimations());
+    return;
+  }
+  if (hasObserver) {
+    new IntersectionObserver(([e]) =>
+      svgs.forEach((s) =>
+        e.isIntersecting ? s.unpauseAnimations() : s.pauseAnimations(),
+      ),
+    ).observe(hero);
+  }
 })();
