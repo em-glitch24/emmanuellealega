@@ -61,9 +61,7 @@
 
     <main>
       <!-- ============ HERO ============ -->
-      <section class="hero" id="home">
-        <!-- Optional video background. Put hero-bg.webm in assets/video/.
-             If the file is missing, the live background below shows instead. -->
+      <section class="hero" id="home" data-bg="video">
         <video
           class="hero__video"
           id="heroVideo"
@@ -71,12 +69,18 @@
           muted
           loop
           playsinline
-          preload="metadata"
+          preload="auto"
+          poster="images/herobg-poster.jpg"
           aria-hidden="true"
         >
-          <source src="images/herobgvid.mp4" type="video/webm" />
+          <source src="images/herobgvid.mp4" type="video/mp4" />
         </video>
-        <div class="hero__image" id="heroImage" aria-hidden="true"></div>
+        <div
+          class="hero__image"
+          id="heroImage"
+          data-src="images/herobg-poster.jpg"
+          aria-hidden="true"
+        ></div>
         <div class="hero__overlay" aria-hidden="true"></div>
 
         <!-- Live background: default look, and the fallback when no video loads -->

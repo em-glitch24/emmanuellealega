@@ -122,7 +122,8 @@ if (heroLive && canHover && !reduceMotion) {
   const image = document.getElementById("heroImage");
   const IMAGE_URL = image && image.dataset.src;
 
-  let videoReady = false;
+  const useVideo = !!video && !reduceMotion;
+  let videoFailed = !useVideo; // true = skip the video, use image or silk
   let imageReady = false;
 
   // floating dust: a handful of tiny specks over the image. Kept minimal
@@ -159,26 +160,24 @@ if (heroLive && canHover && !reduceMotion) {
   }
 
   function sync() {
-    const bg = videoReady ? "video" : imageReady ? "image" : "live";
+    const bg = !videoFailed ? "video" : imageReady ? "image" : "live";
     hero.dataset.bg = bg;
     if (dust) dust.classList.toggle("is-paused", !heroVisible);
     if (!video) return;
     if (bg === "video" && heroVisible) video.play().catch(() => {});
     else video.pause();
   }
-
-  // plan A: video (skipped when the visitor prefers reduced motion)
-  if (video && !reduceMotion) {
-    const setReady = (ok) => {
-      videoReady = ok;
+  // plan A: video. Stay in video mode while it loads; only give up on an
+  // error, or if nothing has loaded after 6 seconds.
+  if (useVideo) {
+    const fail = () => {
+      videoFailed = true;
       sync();
     };
-    if (video.readyState >= 2) setReady(true);
-    video.addEventListener("loadeddata", () => setReady(true));
-    video.addEventListener("error", () => setReady(false), true); // capture: <source> errors don't bubble
-    video.addEventListener("stalled", () => {
-      if (video.readyState < 2) setReady(false);
-    });
+    video.addEventListener("error", fail, true);
+    setTimeout(() => {
+      if (video.readyState < 2) fail();
+    }, 6000);
   }
 
   // plan B: image (probed first, so a missing file never shows a broken box)

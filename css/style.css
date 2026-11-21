@@ -344,9 +344,32 @@ img {
     ),
     rgba(23, 25, 28, 0.45);
 }
-.hero[data-bg="video"] .hero__video,
-.hero[data-bg="image"] .hero__image,
+/* Show the selected background */
+.hero[data-bg="video"] .hero__video {
+  opacity: 1;
+  display: block;
+}
+
+.hero[data-bg="image"] .hero__image {
+  opacity: 1;
+  display: block;
+}
+
+/* Show overlay for video and image backgrounds */
 .hero[data-bg="video"] .hero__overlay,
+.hero[data-bg="image"] .hero__overlay {
+  opacity: 1;
+}
+
+/* Hide live background when video or image is active */
+.hero[data-bg="video"] .hero__live,
+.hero[data-bg="image"] .hero__live {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.9s ease,
+    visibility 0s 0.9s;
+}
 .hero[data-bg="image"] .hero__overlay {
   opacity: 1;
 }
@@ -947,37 +970,114 @@ img {
   }
 }
 
-/* ============ 7. INTRO (first visit only: html.intro is set in <head>) ============ */
+/* ============ 7. INTRO (plays once per session) ============ */
+
+/* Header */
+.intro .header .logo {
+  animation: introUp 0.8s var(--ease) 0.1s both;
+}
+
+.intro .header .nav__link {
+  animation: introUp 0.8s var(--ease) both;
+}
+
+.intro .header .nav__link:nth-child(1) {
+  animation-delay: 0.18s;
+}
+
+.intro .header .nav__link:nth-child(2) {
+  animation-delay: 0.25s;
+}
+
+.intro .header .nav__link:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+.intro .header .nav__link:nth-child(4) {
+  animation-delay: 0.39s;
+}
+
+.intro .header__cta,
+.intro .menu-toggle {
+  animation: introUp 0.8s var(--ease) 0.45s both;
+}
+
+/* Background radar */
 .intro .radar__axis--h {
   animation: axisX 1s var(--ease) 0.1s both;
 }
+
 .intro .radar__axis--v {
   animation: axisY 1s var(--ease) 0.2s both;
 }
+
 .intro .radar__ring {
   animation: ringIn 1.1s var(--ease) both;
   animation-delay: calc(0.25s + var(--i) * 0.12s);
 }
+
 .intro .radar__orbit-wrap {
   animation: introFade 1s ease 0.7s both;
 }
+
 .intro .radar__pulses {
   animation: introFade 1.2s ease 1s both;
 }
+
 .intro .radar__burst {
   animation: radarBurst 1.7s var(--ease) 0.15s both;
 }
-.intro .hero__title {
-  animation: introUp 1.2s var(--ease) 0.35s both;
+
+/* Large name behind the portrait */
+.intro .hero__title span {
+  animation: introUp 1.2s var(--ease) both;
 }
+
+.intro .hero__title span:nth-child(1) {
+  animation-delay: 0.35s;
+}
+
+.intro .hero__title span:nth-child(2) {
+  animation-delay: 0.48s;
+}
+
+/* Portrait */
 .intro .hero__photo {
   animation: introPhoto 1.4s var(--ease) 0.55s both;
 }
-.intro .hero__content {
-  animation: introUp 1.1s var(--ease) 0.95s both;
+
+/* Hero text and navigation */
+.intro .hero__text {
+  animation: introUp 0.9s var(--ease) 0.85s both;
 }
+
+.intro .learn__label {
+  animation: introUp 0.9s var(--ease) 1s both;
+}
+
+.intro .learn__icons li {
+  animation: introUp 0.8s var(--ease) both;
+}
+
+.intro .learn__icons li:nth-child(1) {
+  animation-delay: 1.1s;
+}
+
+.intro .learn__icons li:nth-child(2) {
+  animation-delay: 1.18s;
+}
+
+.intro .learn__icons li:nth-child(3) {
+  animation-delay: 1.26s;
+}
+
+.intro .learn__icons li:nth-child(4) {
+  animation-delay: 1.34s;
+}
+
+/* Bottom badges */
 .intro .badges {
-  animation: introUp 1s var(--ease) 1.15s both;
+  animation: introUp 1s var(--ease) 1.35s both;
 }
 
 @keyframes axisX {
