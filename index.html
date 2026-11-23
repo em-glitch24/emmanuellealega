@@ -12,9 +12,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <!-- baked masks for the portrait-to-code effect (inlined, works from file:// too) -->
+    <link rel="stylesheet" href="css/hero-masks.css" />
     <link rel="stylesheet" href="css/style.css" />
 
     <!-- play the intro once per session -->
@@ -70,7 +72,7 @@
           poster="images/herobg-poster.jpg"
           aria-hidden="true"
         >
-          <source src="images/herobgvid.mp4" type="video/mp4" />
+          <source src="images/herobgvid2.mp4" type="video/mp4" />
         </video>
         <div
           class="hero__image"
@@ -258,23 +260,33 @@
 
         <h1 class="hero__title"><span>EMMANUELLE</span> <span>ALEGA</span></h1>
 
-        <!-- Portrait: dark by default, lit only inside the moving spotlight -->
+        <!-- Portrait: dark by default, lit only inside the moving spotlight.
+             The right half of the face dissolves into live code (see .photo__code). -->
         <figure class="hero__photo">
           <div class="photo__stack" id="photoStack">
-            <img
-              class="photo__base"
-              src="images/me1.png"
-              alt="Portrait of Emmanuelle Alega"
-              draggable="false"
-            />
-            <img
-              class="photo__lit"
-              src="images/me1.png"
-              alt=""
-              aria-hidden="true"
-              draggable="false"
-            />
-            <div class="photo__beam" aria-hidden="true"></div>
+            <!-- the real photo: its mask is a shimmering pixel dissolve -->
+            <div class="photo__solid">
+              <img
+                class="photo__base"
+                src="images/hero.png"
+                alt="Portrait of Emmanuelle Alega"
+                draggable="false"
+              />
+              <img
+                class="photo__lit"
+                src="images/hero.png"
+                alt=""
+                aria-hidden="true"
+                draggable="false"
+              />
+              <div class="photo__beam" aria-hidden="true"></div>
+            </div>
+
+            <!-- the code half: columns are filled by JS (see "HERO PORTRAIT: CODE HALF") -->
+            <div class="photo__codewrap" aria-hidden="true">
+              <div class="photo__code" id="photoCode"></div>
+            </div>
+            <div class="photo__bits" id="photoBits" aria-hidden="true"></div>
           </div>
         </figure>
 

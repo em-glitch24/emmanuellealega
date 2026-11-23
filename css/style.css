@@ -493,34 +493,13 @@ img {
   height: 82%;
   transform: translateX(-50%);
   pointer-events: none;
-  /* fade the bottom AND the sides, then intersect them */
-  -webkit-mask-image:
-    linear-gradient(to bottom, #000 70%, transparent 100%),
-    linear-gradient(
-      to right,
-      transparent 0%,
-      #000 14%,
-      #000 86%,
-      transparent 100%
-    );
-  mask-image:
-    linear-gradient(to bottom, #000 70%, transparent 100%),
-    linear-gradient(
-      to right,
-      transparent 0%,
-      #000 14%,
-      #000 86%,
-      transparent 100%
-    );
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
 }
 
 .photo__stack {
   --sx: 50%;
   --sy: 40%;
   --r: 0px;
-  --dim: 0.5;
+  --dim: 0.7;
   position: relative;
   height: 100%;
 }
@@ -571,6 +550,219 @@ img {
 }
 .photo__stack.is-lit .photo__beam {
   display: none;
+}
+
+/* ---- portrait to live code (the "half my face is data" effect) ----
+   Everything is layered and masked, so it stays a pure CSS animation:
+   .photo__solid   the photo. Its mask is a pixel dissolve baked from the cutout
+                   (3 frames that swap with steps(), so edge pixels shimmer).
+   .photo__code    scrolling code, only visible through hero-code.png. That mask
+                   follows the face shading, so the code "draws" the face.
+   .photo__bits    a few glyphs that drift off to the right. */
+.photo__solid {
+  position: relative;
+  height: 100%;
+  -webkit-mask: var(--hero-solid-a) 0 0 / 100% 100% no-repeat;
+  mask: var(--hero-solid-a) 0 0 / 100% 100% no-repeat;
+  animation: photoShred 2.8s step-end infinite;
+}
+@keyframes photoShred {
+  0%,
+  100% {
+    -webkit-mask-image: var(--hero-solid-a);
+    mask-image: var(--hero-solid-a);
+  }
+  20% {
+    -webkit-mask-image: var(--hero-solid-b);
+    mask-image: var(--hero-solid-b);
+  }
+  38% {
+    -webkit-mask-image: var(--hero-solid-c);
+    mask-image: var(--hero-solid-c);
+  }
+  57% {
+    -webkit-mask-image: var(--hero-solid-b);
+    mask-image: var(--hero-solid-b);
+  }
+  79% {
+    -webkit-mask-image: var(--hero-solid-c);
+    mask-image: var(--hero-solid-c);
+  }
+}
+
+/* wider than the photo (126%) so streaks can trail out past the shoulder */
+.photo__codewrap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 125.97%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(140, 150, 255, 0.55));
+}
+.photo__code {
+  --fs: 10px;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  font:
+    400 var(--fs) / 1.4 "JetBrains Mono",
+    ui-monospace,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace;
+  color: #e4e7ff;
+  -webkit-mask: var(--hero-code) 0 0 / 100% 100% no-repeat;
+  mask: var(--hero-code) 0 0 / 100% 100% no-repeat;
+}
+/* faint haze so the dissolving half keeps some body between the glyphs */
+.photo__code::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(120, 132, 255, 0.16);
+}
+/* scanner: a soft band that sweeps down the code half */
+.photo__code::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 26%;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(190, 198, 255, 0.34) 55%,
+    rgba(255, 255, 255, 0.5) 62%,
+    transparent
+  );
+  animation: codeScan 5.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes codeScan {
+  from {
+    transform: translateY(-110%);
+  }
+  to {
+    transform: translateY(400%);
+  }
+}
+
+.code__col {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 0.6em;
+}
+.code__flow {
+  --t: 30s;
+  animation: codeFlow var(--t) linear infinite;
+  will-change: transform;
+}
+.code__col:nth-child(2) .code__flow {
+  --t: 38s;
+  animation-direction: reverse;
+}
+
+.code__col:nth-child(3) .code__flow {
+  --t: 24s;
+}
+@keyframes codeFlow {
+  to {
+    transform: translateY(-50%);
+  }
+}
+.cl {
+  white-space: pre;
+  opacity: var(--o, 0.85);
+}
+.cl.is-hi {
+  color: #fff;
+}
+.cl.is-ind {
+  color: #8f98ff;
+}
+/* a handful of lines blink like a live terminal */
+.cl.is-hot {
+  animation: codeHot var(--ht, 2.4s) steps(1) infinite;
+  animation-delay: var(--hd, 0s);
+}
+@keyframes codeHot {
+  0%,
+  100% {
+    opacity: var(--o, 0.85);
+  }
+  45% {
+    opacity: 0.12;
+  }
+  55% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.3;
+  }
+}
+
+/* drifting glyphs */
+.photo__bits {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 125.97%;
+  pointer-events: none;
+}
+.photo__bits i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  font:
+    500 var(--s, 11px) / 1 "JetBrains Mono",
+    ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  font-style: normal;
+  color: #cfd4ff;
+  text-shadow: 0 0 8px rgba(150, 160, 255, 0.8);
+  opacity: 0;
+  animation: bitDrift var(--t, 5s) linear infinite;
+  animation-delay: var(--d, 0s);
+}
+@keyframes bitDrift {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  18% {
+    opacity: var(--o, 0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 90px), var(--dy, -24px));
+  }
+}
+
+/* off-screen hero or reduced motion: stop everything */
+.photo__stack.is-paused *,
+.photo__stack.is-paused *::after {
+  animation-play-state: paused !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo__solid,
+  .code__flow,
+  .cl,
+  .photo__code::after,
+  .photo__bits i {
+    animation: none !important;
+  }
+  .photo__code::after,
+  .photo__bits {
+    display: none;
+  }
 }
 
 /* tagline + CTA */

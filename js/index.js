@@ -276,6 +276,170 @@ if (heroLive && canHover && !reduceMotion) {
 })();
 
 /* ==========================================================================
+   HERO PORTRAIT: CODE HALF
+   The right half of the face dissolves into code. CSS does the animation;
+   this only (1) writes the code lines, (2) sizes the font to the portrait and
+   (3) spawns a few drifting glyphs. Nothing here runs per frame.
+   ========================================================================== */
+(() => {
+  const stack = document.getElementById("photoStack");
+  const code = document.getElementById("photoCode");
+  const bits = document.getElementById("photoBits");
+  if (!stack || !code) return;
+
+  const SNIPPETS = [
+    "const express = require('express');",
+    "const router = express.Router();",
+    "app.use(express.json());",
+    "app.use(cors({ origin: true }));",
+    "app.listen(PORT, () => log('up'));",
+    "function validate(data) {",
+    "  if (!data) return null;",
+    "  const { id, email } = data;",
+    "  return { success: true };",
+    "}",
+    "async function getEmployee(id) {",
+    "  const [rows] = await db.query(",
+    "    'SELECT * FROM employees WHERE id = ?',",
+    "    [id],",
+    "  );",
+    "  return rows[0] ?? null;",
+    "}",
+    "router.post('/payroll', async (req, res) => {",
+    "  const net = gross - tax - sss;",
+    "  res.json({ net, status: 'ok' });",
+    "});",
+    "module.exports = { validate, handleError };",
+    "export default function App() {",
+    "  const [data, setData] = useState([]);",
+    "  useEffect(() => { load(); }, []);",
+    "  return <Dashboard rows={data} />;",
+    "}",
+    "try { await connect(); } catch (err) {",
+    "  handleError(err);",
+    "}",
+    "SELECT name, SUM(hours) FROM attendance",
+    "GROUP BY employee_id ORDER BY 2 DESC;",
+    "git commit -m 'fix: payroll rounding'",
+    "npm run build && npm run deploy",
+    "if (status === 200) return res.json(rows);",
+    "const token = jwt.sign({ id }, SECRET);",
+    "for (let i = 0; i < n; i++) sum += a[i];",
+    "ping 192.168.1.1 -c 4 // ok",
+    "digitalWrite(PIN_LED, HIGH); delay(250);",
+    "const hydration = readSensor(A0) / 1023;",
+    "return res.status(404).json({ error });",
+    "import { useState, useEffect } from 'react';",
+  ];
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const hex = () =>
+    "0x" +
+    Math.floor(Math.random() * 65535)
+      .toString(16)
+      .padStart(4, "0");
+  const bin = () =>
+    Array.from({ length: 4 }, () =>
+      Math.floor(Math.random() * 256)
+        .toString(2)
+        .padStart(8, "0"),
+    ).join(" ");
+
+  function makeLine() {
+    const r = Math.random();
+    const el = document.createElement("div");
+    el.className = "cl";
+    if (r < 0.08) el.textContent = bin();
+    else if (r < 0.16) el.textContent = `${hex()}  ${hex()}  ${hex()}`;
+    else el.textContent = pick(SNIPPETS);
+    el.style.setProperty("--o", rand(0.55, 1).toFixed(2));
+    const k = Math.random();
+    if (k < 0.12) el.classList.add("is-hi");
+    else if (k < 0.4) el.classList.add("is-ind");
+    if (Math.random() < 0.05 && !reduceMotion) {
+      el.classList.add("is-hot");
+      el.style.setProperty("--ht", `${rand(1.6, 3.6).toFixed(1)}s`);
+      el.style.setProperty("--hd", `-${rand(0, 3).toFixed(1)}s`);
+    }
+    return el;
+  }
+
+  // 3 columns, each a long list written twice so translateY(-50%) loops
+  const LINES = 64;
+  const cols = Array.from({ length: 3 }, () => {
+    const col = document.createElement("div");
+    col.className = "code__col";
+    const flow = document.createElement("div");
+    flow.className = "code__flow";
+    const once = Array.from({ length: LINES }, makeLine);
+    flow.append(...once, ...once.map((n) => n.cloneNode(true)));
+    col.appendChild(flow);
+    return col;
+  });
+  code.replaceChildren(...cols);
+
+  // font follows the portrait height so the code keeps the same density
+  const fit = () => {
+    const h = stack.clientHeight;
+    if (!h) return;
+    code.style.setProperty(
+      "--fs",
+      `${Math.min(13, Math.max(6, h / 56)).toFixed(2)}px`,
+    );
+  };
+  new ResizeObserver(fit).observe(stack);
+  fit();
+
+  // drifting glyphs: x/y are fractions of the (wider) code layer
+  if (bits && !reduceMotion) {
+    const GLYPHS = [
+      "0",
+      "1",
+      "{",
+      "}",
+      "<",
+      "/>",
+      "=>",
+      ";",
+      "[]",
+      "01",
+      "fn",
+      "&&",
+    ];
+    const small = window.matchMedia("(max-width: 900px)");
+    const build = () => {
+      const n = small.matches ? 14 : 30;
+      bits.replaceChildren(
+        ...Array.from({ length: n }, () => {
+          const el = document.createElement("i");
+          el.textContent = pick(GLYPHS);
+          el.style.cssText = [
+            `--x:${rand(44, 78).toFixed(1)}%`,
+            `--y:${rand(14, 80).toFixed(1)}%`,
+            `--s:${rand(8, 14).toFixed(0)}px`,
+            `--o:${rand(0.4, 0.9).toFixed(2)}`,
+            `--t:${rand(3.5, 7.5).toFixed(1)}s`,
+            `--d:-${rand(0, 7).toFixed(1)}s`,
+            `--dx:${rand(50, 150).toFixed(0)}px`,
+            `--dy:${rand(-50, 30).toFixed(0)}px`,
+          ].join(";");
+          return el;
+        }),
+      );
+    };
+    build();
+    small.addEventListener("change", build);
+  }
+
+  // stop the animations while the hero is off-screen
+  if (hasObserver) {
+    new IntersectionObserver(([e]) =>
+      stack.classList.toggle("is-paused", !e.isIntersecting),
+    ).observe(hero);
+  }
+})();
+
+/* ==========================================================================
    HEADER: LIGHT THEME OVER LIGHT SECTIONS
    Any section with data-theme="light" flips the header to dark-on-light.
    ========================================================================== */
