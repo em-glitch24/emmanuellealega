@@ -499,7 +499,7 @@ img {
   --sx: 50%;
   --sy: 40%;
   --r: 0px;
-  --dim: 0.7;
+  --dim: 0.6;
   position: relative;
   height: 100%;
 }
@@ -558,35 +558,65 @@ img {
                    (3 frames that swap with steps(), so edge pixels shimmer).
    .photo__code    scrolling code, only visible through hero-code.png. That mask
                    follows the face shading, so the code "draws" the face.
-   .photo__bits    a few glyphs that drift off to the right. */
+   (code drifts sideways on the face and sprays outward to the sides) */
 .photo__solid {
+  /* opaque OUTSIDE the front: the plain, intact photo that has not turned yet */
+  --out: radial-gradient(
+    ellipse calc(var(--spread) * 34%) calc(var(--spread) * 42%) at 51.2% 46%,
+    transparent 0 68%,
+    #000 100%
+  );
   position: relative;
   height: 100%;
-  -webkit-mask: var(--hero-solid-a) 0 0 / 100% 100% no-repeat;
-  mask: var(--hero-solid-a) 0 0 / 100% 100% no-repeat;
+  -webkit-mask:
+    var(--hero-solid) 0 0 / 100% 300% no-repeat,
+    var(--out) 0 0 / 100% 100% no-repeat;
+  mask:
+    var(--hero-solid) 0 0 / 100% 300% no-repeat,
+    var(--out) 0 0 / 100% 100% no-repeat;
   animation: photoShred 2.8s step-end infinite;
 }
 @keyframes photoShred {
   0%,
   100% {
-    -webkit-mask-image: var(--hero-solid-a);
-    mask-image: var(--hero-solid-a);
+    -webkit-mask-position:
+      0 0,
+      0 0;
+    mask-position:
+      0 0,
+      0 0;
   }
   20% {
-    -webkit-mask-image: var(--hero-solid-b);
-    mask-image: var(--hero-solid-b);
+    -webkit-mask-position:
+      0 50%,
+      0 0;
+    mask-position:
+      0 50%,
+      0 0;
   }
   38% {
-    -webkit-mask-image: var(--hero-solid-c);
-    mask-image: var(--hero-solid-c);
+    -webkit-mask-position:
+      0 100%,
+      0 0;
+    mask-position:
+      0 100%,
+      0 0;
   }
   57% {
-    -webkit-mask-image: var(--hero-solid-b);
-    mask-image: var(--hero-solid-b);
+    -webkit-mask-position:
+      0 50%,
+      0 0;
+    mask-position:
+      0 50%,
+      0 0;
   }
   79% {
-    -webkit-mask-image: var(--hero-solid-c);
-    mask-image: var(--hero-solid-c);
+    -webkit-mask-position:
+      0 100%,
+      0 0;
+    mask-position:
+      0 100%,
+      0 0;
   }
 }
 
@@ -605,8 +635,6 @@ img {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
   font:
     400 var(--fs) / 1.4 "JetBrains Mono",
     ui-monospace,
@@ -615,8 +643,20 @@ img {
     Consolas,
     monospace;
   color: #e4e7ff;
-  -webkit-mask: var(--hero-code) 0 0 / 100% 100% no-repeat;
-  mask: var(--hero-code) 0 0 / 100% 100% no-repeat;
+  /* the code only shows inside the growing front */
+  --in: radial-gradient(
+    ellipse calc(var(--spread) * 27%) calc(var(--spread) * 42%) at 40.7% 46%,
+    #000 0 68%,
+    transparent 100%
+  );
+  -webkit-mask:
+    var(--hero-code) 0 0 / 100% 100% no-repeat,
+    var(--in) 0 0 / 100% 100% no-repeat;
+  mask:
+    var(--hero-code) 0 0 / 100% 100% no-repeat,
+    var(--in) 0 0 / 100% 100% no-repeat;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 /* faint haze so the dissolving half keeps some body between the glyphs */
 .photo__code::before {
@@ -625,59 +665,45 @@ img {
   inset: 0;
   background: rgba(120, 132, 255, 0.16);
 }
-/* scanner: a soft band that sweeps down the code half */
-.photo__code::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 26%;
-  background: linear-gradient(
-    180deg,
-    transparent,
-    rgba(190, 198, 255, 0.34) 55%,
-    rgba(255, 255, 255, 0.5) 62%,
-    transparent
-  );
-  animation: codeScan 5.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-@keyframes codeScan {
-  from {
-    transform: translateY(-110%);
-  }
-  to {
-    transform: translateY(400%);
-  }
-}
-
+/* The code on the face drifts sideways, outward to the right, the same way the
+   spray leaves it. Each row is an endless stream; rows also fade out and back
+   in on their own rhythm. Nothing moves up or down. The mask keeps all of it on
+   the face. */
 .code__col {
-  position: relative;
-  min-width: 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 36%;
+  right: 0;
   overflow: hidden;
-  padding-left: 0.6em;
-}
-.code__flow {
-  --t: 30s;
-  animation: codeFlow var(--t) linear infinite;
-  will-change: transform;
-}
-.code__col:nth-child(2) .code__flow {
-  --t: 38s;
-  animation-direction: reverse;
-}
-
-.code__col:nth-child(3) .code__flow {
-  --t: 24s;
-}
-@keyframes codeFlow {
-  to {
-    transform: translateY(-50%);
-  }
 }
 .cl {
   white-space: pre;
-  opacity: var(--o, 0.85);
+  animation: codePulse var(--pt, 4s) ease-in-out infinite;
+  animation-delay: var(--pd, 0s);
+}
+.cf {
+  display: inline-block;
+  animation: codeSlide var(--ft, 10s) linear infinite;
+  animation-delay: var(--fd, 0s);
+}
+@keyframes codeSlide {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes codePulse {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  28%,
+  66% {
+    opacity: var(--o, 0.9);
+  }
 }
 .cl.is-hi {
   color: #fff;
@@ -685,29 +711,13 @@ img {
 .cl.is-ind {
   color: #8f98ff;
 }
-/* a handful of lines blink like a live terminal */
-.cl.is-hot {
-  animation: codeHot var(--ht, 2.4s) steps(1) infinite;
-  animation-delay: var(--hd, 0s);
-}
-@keyframes codeHot {
-  0%,
-  100% {
-    opacity: var(--o, 0.85);
-  }
-  45% {
-    opacity: 0.12;
-  }
-  55% {
-    opacity: 1;
-  }
-  70% {
-    opacity: 0.3;
-  }
-}
 
-/* drifting glyphs */
+/* ---- spray ----
+   Bits of code leave the face and spread out to the sides, fading as they go.
+   JS places them on the code half of the face (--x / --y) and gives each its own
+   direction (--dx / --dy). --k scales distances with the portrait size. */
 .photo__bits {
+  --k: 1;
   position: absolute;
   top: 0;
   bottom: 0;
@@ -715,51 +725,87 @@ img {
   width: 125.97%;
   pointer-events: none;
 }
-.photo__bits i {
+.photo__bits i,
+.photo__bits b {
   position: absolute;
   left: var(--x);
   top: var(--y);
+  opacity: 0;
+  animation: bitOut var(--t, 4s) cubic-bezier(0.15, 0.55, 0.3, 1) infinite;
+  animation-delay: var(--d, 0s);
+}
+.photo__bits i {
   font:
-    500 var(--s, 11px) / 1 "JetBrains Mono",
+    500 calc(var(--s, 10) * var(--k) * 1px) / 1 "JetBrains Mono",
     ui-monospace,
     Menlo,
     Consolas,
     monospace;
   font-style: normal;
-  color: #cfd4ff;
-  text-shadow: 0 0 8px rgba(150, 160, 255, 0.8);
-  opacity: 0;
-  animation: bitDrift var(--t, 5s) linear infinite;
-  animation-delay: var(--d, 0s);
+  color: #d6daff;
+  text-shadow: 0 0 8px rgba(150, 160, 255, 0.7);
 }
-@keyframes bitDrift {
+/* thin horizontal data streaks, like the glitch trails in the original */
+.photo__bits b {
+  width: calc(var(--w, 40) * var(--k) * 1px);
+  height: 1px;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, transparent, rgba(210, 216, 255, 0.95));
+  animation-name: bitStreak;
+}
+@keyframes bitOut {
   0% {
     opacity: 0;
-    transform: translate(0, 0);
+    transform: translate(0, 0) scale(0.8);
   }
-  18% {
+  12% {
     opacity: var(--o, 0.8);
   }
   100% {
     opacity: 0;
-    transform: translate(var(--dx, 90px), var(--dy, -24px));
+    transform: translate(
+        calc(var(--dx) * var(--k) * 1px),
+        calc(var(--dy) * var(--k) * 1px)
+      )
+      scale(var(--sc, 1.1));
+  }
+}
+@keyframes bitStreak {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scaleX(0.2);
+  }
+  14% {
+    opacity: var(--o, 0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(var(--dx) * var(--k) * 1px),
+        calc(var(--dy) * var(--k) * 1px)
+      )
+      scaleX(1.25);
   }
 }
 
 /* off-screen hero or reduced motion: stop everything */
+.photo__stack.is-paused,
 .photo__stack.is-paused *,
 .photo__stack.is-paused *::after {
   animation-play-state: paused !important;
 }
 @media (prefers-reduced-motion: reduce) {
   .photo__solid,
-  .code__flow,
   .cl,
-  .photo__code::after,
-  .photo__bits i {
+  .cf {
     animation: none !important;
   }
-  .photo__code::after,
+  .cl {
+    opacity: var(--o, 0.9);
+  }
+  .cf {
+    transform: none;
+  }
   .photo__bits {
     display: none;
   }
@@ -1221,28 +1267,14 @@ img {
 }
 
 /* Large name behind the portrait */
-.intro .hero__title span {
-  animation: introUp 1.2s var(--ease) both;
-}
-
-.intro .hero__title span:nth-child(1) {
-  animation-delay: 0.35s;
-}
-
-.intro .hero__title span:nth-child(2) {
-  animation-delay: 0.48s;
-}
-
 /* Portrait */
 .intro .hero__photo {
-  animation: introPhoto 1.4s var(--ease) 0.55s both;
+  animation:
+    introFade 0.5s ease 0.5s both,
+    scanReveal 1.5s cubic-bezier(0.65, 0.02, 0.3, 1) 0.6s both;
 }
 
 /* Hero text and navigation */
-.intro .hero__text {
-  animation: introUp 0.9s var(--ease) 0.85s both;
-}
-
 .intro .learn__label {
   animation: introUp 0.9s var(--ease) 1s both;
 }
@@ -1313,6 +1345,193 @@ img {
   from {
     opacity: 0;
     translate: 0 48px;
+  }
+}
+
+/* ---- hero motion, built around the portrait ----
+   1. SCAN-IN (intro): a light beam sweeps left to right and reveals the plain
+      portrait. No code yet.
+   2. NAME (intro): letters rise and sharpen one by one, from the middle outward.
+   3. TAGLINE (intro): words blur in one by one.
+   4. SLOW START: a moment later the face begins to turn to code, spreading out
+      from the middle of the face (see "the code starts slowly" below).
+   5. AFTER THE INTRO: the scan beam passes over the silhouette every few
+      seconds, and title, portrait and code sit at slightly different depths so
+      they shift against each other when the mouse moves. */
+
+/* the code starts slowly: for the first moments the portrait is the plain photo,
+   then a front grows out of the middle of the face. Inside it the face turns to
+   code, outside it is still the plain photo. --spread is the front's size; it
+   ends at 3, which covers the whole half portrait. Registered so it can animate. */
+@property --spread {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 3;
+}
+.photo__stack {
+  --spread: 3;
+  animation: spreadIn 3.8s cubic-bezier(0.35, 0, 0.2, 1) 2.2s both;
+}
+@keyframes spreadIn {
+  from {
+    --spread: 0.02;
+  }
+}
+/* the spray joins in late, once the code has started */
+.photo__bits {
+  animation: introFade 2.4s ease 3.4s both;
+}
+
+/* the beam is clipped to the silhouette so it only lights the person */
+.photo__scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  -webkit-mask: var(--hero-sil) 0 0 / 100% 100% no-repeat;
+  mask: var(--hero-sil) 0 0 / 100% 100% no-repeat;
+}
+.photo__scan i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  will-change: transform;
+  /* soft trail behind a crisp leading edge that has already faded out at the
+     centre line, so the reveal edge never cuts the beam in half */
+  background: linear-gradient(
+    90deg,
+    transparent 28%,
+    rgba(120, 132, 255, 0.1) 38%,
+    rgba(150, 160, 255, 0.3) 45%,
+    rgba(205, 210, 255, 0.62) 48.4%,
+    rgba(235, 238, 255, 0.5) 49.6%,
+    rgba(255, 255, 255, 0) 50.6%
+  );
+  animation: scanLoop 9s cubic-bezier(0.45, 0, 0.35, 1) 2s infinite;
+}
+@keyframes scanLoop {
+  0% {
+    opacity: 0;
+    transform: translateX(-55%);
+  }
+  4% {
+    opacity: 1;
+  }
+  27% {
+    opacity: 1;
+    transform: translateX(55%);
+  }
+  31%,
+  100% {
+    opacity: 0;
+    transform: translateX(60%);
+  }
+}
+
+/* intro: the visible edge of the stack travels exactly with the beam */
+.intro .photo__scan i {
+  opacity: 1;
+  animation: scanIntro 1.5s cubic-bezier(0.65, 0.02, 0.3, 1) 0.6s both;
+}
+@keyframes scanReveal {
+  from {
+    clip-path: inset(-6% 100% -6% 0);
+  }
+  to {
+    clip-path: inset(-6% -45% -6% -12%);
+  }
+}
+@keyframes scanIntro {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(95%);
+  }
+}
+
+/* intro: name and tagline */
+/* intro: the name. Letters rise and sharpen one by one, starting from the middle
+   and moving outward, while the spacing tightens slightly. (JS wraps each letter
+   in an <i> and sets --d = distance from the middle; the gradient moves onto
+   the letters so each one can animate on its own.) */
+.hero__title.is-split {
+  background: none;
+}
+.hero__title i {
+  display: inline-block;
+  font-style: normal;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.28),
+    rgba(255, 255, 255, 0.05)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.intro .hero__title.is-split {
+  animation: trackIn 2s cubic-bezier(0.2, 0.7, 0.2, 1) 0.4s both;
+}
+.intro .hero__title i {
+  animation: letterIn 1.1s var(--ease) calc(0.5s + var(--d, 0) * 55ms) both;
+}
+@keyframes trackIn {
+  from {
+    letter-spacing: 0.08em;
+  }
+}
+@keyframes letterIn {
+  from {
+    opacity: 0;
+    translate: 0 0.3em;
+    filter: blur(10px);
+  }
+}
+
+.hero__text .w {
+  display: inline-block;
+}
+.intro .hero__text .w {
+  animation: wordIn 0.8s var(--ease) calc(1s + var(--i) * 45ms) both;
+}
+@keyframes wordIn {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+    filter: blur(6px);
+  }
+}
+
+/* depth: each layer shifts a different amount with the mouse (--px / --py, -1 to 1) */
+.hero__title {
+  translate: calc(var(--px, 0) * -18px) calc(var(--py, 0) * -8px);
+}
+.photo__stack {
+  translate: calc(var(--px, 0) * 10px) calc(var(--py, 0) * 5px);
+}
+.photo__codewrap,
+.photo__bits {
+  translate: calc(var(--px, 0) * 7px) calc(var(--py, 0) * 3.5px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro .hero__photo,
+  .photo__stack,
+  .photo__bits,
+  .intro .photo__scan i,
+  .intro .hero__text .w {
+    animation: none !important;
+  }
+  .photo__scan {
+    display: none;
+  }
+  .hero__title,
+  .photo__stack,
+  .photo__codewrap,
+  .photo__bits {
+    translate: none;
   }
 }
 

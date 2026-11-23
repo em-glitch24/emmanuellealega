@@ -279,7 +279,7 @@ if (heroLive && canHover && !reduceMotion) {
    HERO PORTRAIT: CODE HALF
    The right half of the face dissolves into code. CSS does the animation;
    this only (1) writes the code lines, (2) sizes the font to the portrait and
-   (3) spawns a few drifting glyphs. Nothing here runs per frame.
+   (3) throws bits of code off the face. Nothing here runs per frame.
    ========================================================================== */
 (() => {
   const stack = document.getElementById("photoStack");
@@ -346,39 +346,44 @@ if (heroLive && canHover && !reduceMotion) {
     ).join(" ");
 
   function makeLine() {
-    const r = Math.random();
-    const el = document.createElement("div");
-    el.className = "cl";
-    if (r < 0.08) el.textContent = bin();
-    else if (r < 0.16) el.textContent = `${hex()}  ${hex()}  ${hex()}`;
-    else el.textContent = pick(SNIPPETS);
-    el.style.setProperty("--o", rand(0.55, 1).toFixed(2));
-    const k = Math.random();
-    if (k < 0.12) el.classList.add("is-hi");
-    else if (k < 0.4) el.classList.add("is-ind");
-    if (Math.random() < 0.05 && !reduceMotion) {
-      el.classList.add("is-hot");
-      el.style.setProperty("--ht", `${rand(1.6, 3.6).toFixed(1)}s`);
-      el.style.setProperty("--hd", `-${rand(0, 3).toFixed(1)}s`);
+    const row = document.createElement("div");
+    row.className = "cl";
+    // one stream = a few snippets in a row, written twice so the slide loops
+    let text = "";
+    while (text.length < 80) {
+      const r = Math.random();
+      text +=
+        (r < 0.1 ? bin() : r < 0.2 ? `${hex()}  ${hex()}` : pick(SNIPPETS)) +
+        "     ";
     }
-    return el;
+    const flow = document.createElement("span");
+    flow.className = "cf";
+    flow.append(
+      Object.assign(document.createElement("span"), { textContent: text }),
+      Object.assign(document.createElement("span"), { textContent: text }),
+    );
+    row.appendChild(flow);
+    row.style.setProperty("--o", rand(0.6, 1).toFixed(2));
+    if (!reduceMotion) {
+      row.style.setProperty("--pt", `${rand(3, 7).toFixed(1)}s`); // fade out / in
+      row.style.setProperty("--pd", `-${rand(0, 7).toFixed(1)}s`);
+      row.style.setProperty("--ft", `${rand(7, 15).toFixed(1)}s`); // slide speed
+      row.style.setProperty("--fd", `-${rand(0, 15).toFixed(1)}s`);
+    }
+    const k = Math.random();
+    if (k < 0.12) row.classList.add("is-hi");
+    else if (k < 0.4) row.classList.add("is-ind");
+    return row;
   }
 
-  // 3 columns, each a long list written twice so translateY(-50%) loops
-  const LINES = 64;
-  const cols = Array.from({ length: 3 }, () => {
-    const col = document.createElement("div");
-    col.className = "code__col";
-    const flow = document.createElement("div");
-    flow.className = "code__flow";
-    const once = Array.from({ length: LINES }, makeLine);
-    flow.append(...once, ...once.map((n) => n.cloneNode(true)));
-    col.appendChild(flow);
-    return col;
-  });
-  code.replaceChildren(...cols);
+  // one column that starts just left of the face; its rows stream to the right
+  const LINES = 52; // face + shoulders
+  const col = document.createElement("div");
+  col.className = "code__col";
+  col.append(...Array.from({ length: LINES }, makeLine));
+  code.replaceChildren(col);
 
-  // font follows the portrait height so the code keeps the same density
+  // font + spray distances follow the portrait height
   const fit = () => {
     const h = stack.clientHeight;
     if (!h) return;
@@ -386,11 +391,14 @@ if (heroLive && canHover && !reduceMotion) {
       "--fs",
       `${Math.min(13, Math.max(6, h / 56)).toFixed(2)}px`,
     );
+    if (bits) bits.style.setProperty("--k", (h / 707).toFixed(3));
   };
   new ResizeObserver(fit).observe(stack);
   fit();
 
-  // drifting glyphs: x/y are fractions of the (wider) code layer
+  // THE SPRAY: bits of code break away from the face and spread out to the sides.
+  // Start points are sampled from the code mask itself, so they always begin on
+  // the code half of the face (biased to its outer edge) and never on the suit.
   if (bits && !reduceMotion) {
     const GLYPHS = [
       "0",
@@ -401,34 +409,91 @@ if (heroLive && canHover && !reduceMotion) {
       "/>",
       "=>",
       ";",
+      "()",
       "[]",
       "01",
       "fn",
       "&&",
+      "const",
+      "0x",
     ];
     const small = window.matchMedia("(max-width: 900px)");
-    const build = () => {
-      const n = small.matches ? 14 : 30;
-      bits.replaceChildren(
-        ...Array.from({ length: n }, () => {
-          const el = document.createElement("i");
-          el.textContent = pick(GLYPHS);
-          el.style.cssText = [
-            `--x:${rand(44, 78).toFixed(1)}%`,
-            `--y:${rand(14, 80).toFixed(1)}%`,
-            `--s:${rand(8, 14).toFixed(0)}px`,
-            `--o:${rand(0.4, 0.9).toFixed(2)}`,
-            `--t:${rand(3.5, 7.5).toFixed(1)}s`,
-            `--d:-${rand(0, 7).toFixed(1)}s`,
-            `--dx:${rand(50, 150).toFixed(0)}px`,
-            `--dy:${rand(-50, 30).toFixed(0)}px`,
-          ].join(";");
-          return el;
-        }),
-      );
+    const maskSrc = getComputedStyle(document.documentElement)
+      .getPropertyValue("--hero-code")
+      .trim()
+      .replace(/^url\(["']?/, "")
+      .replace(/["']?\)$/, "");
+
+    const spawn = (cells) => {
+      // spread the starting points evenly from the forehead to the shoulders:
+      // pick a horizontal band first, then a point in it (favouring its outer edge)
+      const BANDS = 28;
+      const bands = Array.from({ length: BANDS }, () => []);
+      for (const c of cells)
+        bands[Math.min(BANDS - 1, Math.floor(c[1] * BANDS))].push(c);
+      const filled = bands.filter((b) => b.length);
+      const at = () => {
+        const band = pick(filled);
+        const a = pick(band);
+        const b = pick(band);
+        return a[0] > b[0] ? a : b;
+      };
+      const common = (el, x, y, dist, o, t) => {
+        // fan out: the further it travels, the more it spreads up or down
+        const dx = dist * rand(0.85, 1.15);
+        const dy = rand(-1, 1) * dist * 0.42;
+        el.style.cssText = [
+          `--x:${(x * 100).toFixed(2)}%`,
+          `--y:${(y * 100).toFixed(2)}%`,
+          `--dx:${dx.toFixed(0)}`,
+          `--dy:${dy.toFixed(0)}`,
+          `--o:${o.toFixed(2)}`,
+          `--t:${t.toFixed(1)}s`,
+          `--d:-${rand(0, t).toFixed(1)}s`,
+        ].join(";");
+      };
+      const n = small.matches ? 1 : 2;
+      const nodes = [];
+      for (let i = 0; i < 46 * n; i++) {
+        const [x, y] = at();
+        const el = document.createElement("i");
+        el.textContent = pick(GLYPHS);
+        common(el, x, y, rand(50, 300), rand(0.5, 0.95), rand(3, 6.5));
+        el.style.setProperty("--s", rand(8, 14).toFixed(0));
+        el.style.setProperty("--sc", rand(0.9, 1.5).toFixed(2));
+        nodes.push(el);
+      }
+      for (let i = 0; i < 18 * n; i++) {
+        const [x, y] = at();
+        const el = document.createElement("b");
+        common(el, x, y, rand(90, 320), rand(0.35, 0.8), rand(2.4, 5));
+        el.style.setProperty("--w", rand(26, 110).toFixed(0));
+        nodes.push(el);
+      }
+      bits.replaceChildren(...nodes);
     };
-    build();
-    small.addEventListener("change", build);
+
+    const img = new Image();
+    img.onload = () => {
+      const w = Math.round(img.naturalWidth / 5);
+      const h = Math.round(img.naturalHeight / 5);
+      const cv = document.createElement("canvas");
+      cv.width = w;
+      cv.height = h;
+      const ctx = cv.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, w, h);
+      const px = ctx.getImageData(0, 0, w, h).data;
+      const cells = [];
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++)
+          if (px[(y * w + x) * 4 + 3] > 24)
+            cells.push([(x + 0.5) / w, (y + 0.5) / h]);
+      if (cells.length) {
+        spawn(cells);
+        small.addEventListener("change", () => spawn(cells));
+      }
+    };
+    img.src = maskSrc;
   }
 
   // stop the animations while the hero is off-screen
@@ -1002,6 +1067,98 @@ armReveal("contact", (i) => i * 80);
   if (!root.classList.contains("intro")) return;
 
   setTimeout(() => root.classList.remove("intro"), 3200);
+})();
+
+/* ==========================================================================
+   HERO MOTION
+   Name letters, tagline words, mouse depth. The scan beam and the reveal are
+   pure CSS (see "hero motion, built around the portrait" in style.css).
+   ========================================================================== */
+(() => {
+  const root = document.documentElement;
+  const title = document.querySelector(".hero__title");
+  const text = document.querySelector(".hero__text");
+  const stack = document.getElementById("photoStack");
+  const playing = root.classList.contains("intro") && !reduceMotion;
+
+  // ---- tagline: wrap words so each one can blur in on its own ----
+  if (playing && text) {
+    const words = text.textContent.trim().split(/\s+/);
+    text.replaceChildren(
+      ...words.flatMap((word, i) => {
+        const w = document.createElement("span");
+        w.className = "w";
+        w.style.setProperty("--i", i);
+        w.textContent = word;
+        return i < words.length - 1 ? [w, document.createTextNode(" ")] : [w];
+      }),
+    );
+  }
+
+  // ---- name: letters rise and sharpen one by one, from the middle outward ----
+  if (playing && title) {
+    const spans = [...title.querySelectorAll("span")];
+    title.setAttribute("aria-label", spans.map((s) => s.textContent).join(" "));
+    const letters = [];
+    spans.forEach((span) => {
+      span.setAttribute("aria-hidden", "true");
+      span.replaceChildren(
+        ...[...span.textContent].map((ch) => {
+          const el = document.createElement("i");
+          el.textContent = ch;
+          letters.push(el);
+          return el;
+        }),
+      );
+    });
+    const mid = (letters.length - 1) / 2;
+    letters.forEach((el, i) =>
+      el.style.setProperty("--d", Math.abs(i - mid).toFixed(1)),
+    );
+    title.classList.add("is-split");
+  }
+
+  // ---- depth: title, portrait and code shift against each other with the mouse ----
+  const fine = window.matchMedia("(hover: hover) and (pointer: fine)");
+  if (!reduceMotion && fine.matches && hero && title && stack) {
+    let tx = 0,
+      ty = 0,
+      cx = 0,
+      cy = 0,
+      raf = 0;
+    const set = () => {
+      for (const el of [title, stack]) {
+        el.style.setProperty("--px", cx.toFixed(3));
+        el.style.setProperty("--py", cy.toFixed(3));
+      }
+    };
+    const step = () => {
+      cx += (tx - cx) * 0.08;
+      cy += (ty - cy) * 0.08;
+      set();
+      raf =
+        Math.abs(tx - cx) > 0.002 || Math.abs(ty - cy) > 0.002
+          ? requestAnimationFrame(step)
+          : 0;
+    };
+    const go = () => {
+      if (!raf) raf = requestAnimationFrame(step);
+    };
+    hero.addEventListener(
+      "pointermove",
+      (e) => {
+        const r = hero.getBoundingClientRect();
+        tx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+        ty = ((e.clientY - r.top) / r.height - 0.5) * 2;
+        go();
+      },
+      { passive: true },
+    );
+    hero.addEventListener("pointerleave", () => {
+      tx = ty = 0;
+      go();
+    });
+  }
 })();
 
 /* SILK: stop the SVG sheen for reduced motion and while the hero is off-screen */
