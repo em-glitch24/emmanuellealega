@@ -499,7 +499,7 @@ img {
   --sx: 50%;
   --sy: 40%;
   --r: 0px;
-  --dim: 0.6;
+  --dim: 0.5;
   position: relative;
   height: 100%;
 }
@@ -1269,9 +1269,7 @@ img {
 /* Large name behind the portrait */
 /* Portrait */
 .intro .hero__photo {
-  animation:
-    introFade 0.5s ease 0.5s both,
-    scanReveal 1.5s cubic-bezier(0.65, 0.02, 0.3, 1) 0.6s both;
+  animation: introFade 1s ease 0.5s both;
 }
 
 /* Hero text and navigation */
@@ -1349,15 +1347,13 @@ img {
 }
 
 /* ---- hero motion, built around the portrait ----
-   1. SCAN-IN (intro): a light beam sweeps left to right and reveals the plain
-      portrait. No code yet.
+   1. PORTRAIT (intro): the plain photo fades in. No code yet.
    2. NAME (intro): letters rise and sharpen one by one, from the middle outward.
    3. TAGLINE (intro): words blur in one by one.
    4. SLOW START: a moment later the face begins to turn to code, spreading out
       from the middle of the face (see "the code starts slowly" below).
-   5. AFTER THE INTRO: the scan beam passes over the silhouette every few
-      seconds, and title, portrait and code sit at slightly different depths so
-      they shift against each other when the mouse moves. */
+   5. AFTER THE INTRO: title, portrait and code sit at slightly different
+      depths so they shift against each other when the mouse moves. */
 
 /* the code starts slowly: for the first moments the portrait is the plain photo,
    then a front grows out of the middle of the face. Inside it the face turns to
@@ -1380,75 +1376,6 @@ img {
 /* the spray joins in late, once the code has started */
 .photo__bits {
   animation: introFade 2.4s ease 3.4s both;
-}
-
-/* the beam is clipped to the silhouette so it only lights the person */
-.photo__scan {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  mix-blend-mode: screen;
-  -webkit-mask: var(--hero-sil) 0 0 / 100% 100% no-repeat;
-  mask: var(--hero-sil) 0 0 / 100% 100% no-repeat;
-}
-.photo__scan i {
-  display: block;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  will-change: transform;
-  /* soft trail behind a crisp leading edge that has already faded out at the
-     centre line, so the reveal edge never cuts the beam in half */
-  background: linear-gradient(
-    90deg,
-    transparent 28%,
-    rgba(120, 132, 255, 0.1) 38%,
-    rgba(150, 160, 255, 0.3) 45%,
-    rgba(205, 210, 255, 0.62) 48.4%,
-    rgba(235, 238, 255, 0.5) 49.6%,
-    rgba(255, 255, 255, 0) 50.6%
-  );
-  animation: scanLoop 9s cubic-bezier(0.45, 0, 0.35, 1) 2s infinite;
-}
-@keyframes scanLoop {
-  0% {
-    opacity: 0;
-    transform: translateX(-55%);
-  }
-  4% {
-    opacity: 1;
-  }
-  27% {
-    opacity: 1;
-    transform: translateX(55%);
-  }
-  31%,
-  100% {
-    opacity: 0;
-    transform: translateX(60%);
-  }
-}
-
-/* intro: the visible edge of the stack travels exactly with the beam */
-.intro .photo__scan i {
-  opacity: 1;
-  animation: scanIntro 1.5s cubic-bezier(0.65, 0.02, 0.3, 1) 0.6s both;
-}
-@keyframes scanReveal {
-  from {
-    clip-path: inset(-6% 100% -6% 0);
-  }
-  to {
-    clip-path: inset(-6% -45% -6% -12%);
-  }
-}
-@keyframes scanIntro {
-  from {
-    transform: translateX(-50%);
-  }
-  to {
-    transform: translateX(95%);
-  }
 }
 
 /* intro: name and tagline */
@@ -1520,12 +1447,8 @@ img {
   .intro .hero__photo,
   .photo__stack,
   .photo__bits,
-  .intro .photo__scan i,
   .intro .hero__text .w {
     animation: none !important;
-  }
-  .photo__scan {
-    display: none;
   }
   .hero__title,
   .photo__stack,
@@ -2205,12 +2128,13 @@ img {
   .projects__frame {
     order: 1;
   }
+  /* the pills are hidden on mobile: the title and description right below the
+     screenshot already name the project, and swiping still switches projects */
   .projects__nav {
-    order: 2;
-    align-items: stretch;
+    display: none;
   }
   .projects__info {
-    order: 3;
+    order: 2;
   }
   .projects__arrow {
     display: none;
@@ -2680,6 +2604,28 @@ img {
   font-size: 0.8rem;
   line-height: 1.55;
   color: var(--muted);
+}
+
+/* Balanced heights (desktop). The right column is a grid: the three certificates
+   are always the same height, and the highlighted award is 1.3x taller. Tracks
+   grow with their content, so a longer certificate title never squashes a card.
+   The left column then stretches its rows so both columns end at the same line. */
+@media (min-width: 901px) {
+  .skills__col:last-child {
+    display: grid;
+    grid-template-rows:
+      auto
+      minmax(min-content, 1.3fr)
+      repeat(3, minmax(min-content, 1fr));
+    grid-auto-rows: minmax(min-content, 1fr);
+  }
+  .skills__col:first-child .skill-row {
+    flex: 1 1 auto;
+    align-content: center;
+  }
+}
+.award {
+  padding: 1.5rem 1.6rem;
 }
 
 /* scroll reveal (only armed when JS runs, so nothing is hidden without it) */

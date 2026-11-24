@@ -753,43 +753,44 @@ if (heroLive && canHover && !reduceMotion) {
         lockUntil = performance.now() + 700; // keep the pill list from fighting back
         centerItem(i, true);
       });
-      // the next screenshot starts zoomed out and dim, then grows as it nears the top
-      const FX_SCALE = 0.86; // size of the neighbouring screenshots
-      const FX_OPACITY = 0.55;
-      let fxTick = false;
-
-      function stackFx() {
-        fxTick = false;
-        if (!mobile.matches) {
-          slides.forEach((s) => {
-            s.style.transform = "";
-            s.style.opacity = "";
-          });
-          return;
-        }
-        const step = stackStep();
-        slides.forEach((s, i) => {
-          const d = i - stack.scrollTop / step; // 0 = current, 1 = next, -1 = previous
-          const t = Math.min(Math.abs(d), 1);
-          s.style.transformOrigin = d > 0 ? "50% 0" : "50% 100%";
-          s.style.transform = `scale(${(1 - (1 - FX_SCALE) * t).toFixed(3)})`;
-          s.style.opacity = (1 - (1 - FX_OPACITY) * t).toFixed(3);
-        });
-      }
-      stack.addEventListener(
-        "scroll",
-        () => {
-          if (fxTick) return;
-          fxTick = true;
-          requestAnimationFrame(stackFx);
-        },
-        { passive: true },
-      );
-      mobile.addEventListener("change", stackFx);
-      stackFx();
     },
     { passive: true },
   );
+
+  // the neighbouring screenshots are zoomed out and dim, and grow as they near the top
+  const FX_SCALE = 0.8; // size of the neighbouring screenshots (1 = full size)
+  const FX_OPACITY = 0.55;
+  let fxTick = false;
+
+  function stackFx() {
+    fxTick = false;
+    if (!mobile.matches) {
+      slides.forEach((s) => {
+        s.style.transform = "";
+        s.style.opacity = "";
+      });
+      return;
+    }
+    const step = stackStep();
+    slides.forEach((s, i) => {
+      const d = i - stack.scrollTop / step; // 0 = current, 1 = next, -1 = previous
+      const t = Math.min(Math.abs(d), 1);
+      s.style.transformOrigin = d > 0 ? "50% 0" : "50% 100%";
+      s.style.transform = `scale(${(1 - (1 - FX_SCALE) * t).toFixed(3)})`;
+      s.style.opacity = (1 - (1 - FX_OPACITY) * t).toFixed(3);
+    });
+  }
+  stack.addEventListener(
+    "scroll",
+    () => {
+      if (fxTick) return;
+      fxTick = true;
+      requestAnimationFrame(stackFx);
+    },
+    { passive: true },
+  );
+  mobile.addEventListener("change", stackFx);
+  stackFx();
 
   // ---- description ----
   function setInfo(p) {
@@ -1071,7 +1072,7 @@ armReveal("contact", (i) => i * 80);
 
 /* ==========================================================================
    HERO MOTION
-   Name letters, tagline words, mouse depth. The scan beam and the reveal are
+   Name letters, tagline words, mouse depth. The slow code start is
    pure CSS (see "hero motion, built around the portrait" in style.css).
    ========================================================================== */
 (() => {
