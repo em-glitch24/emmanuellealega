@@ -1644,7 +1644,7 @@ img {
   justify-content: center;
   align-items: center;
   gap: 2.75rem;
-  padding: 7rem var(--gutter) 4rem;
+  padding: 4rem var(--gutter) 3rem;
   overflow: hidden;
   color: var(--text);
   background: #f5f6f8 url("../images/projects.jpg") center / cover no-repeat;
@@ -2082,7 +2082,18 @@ img {
   }
 }
 
-/* ---- tablet / mobile: screenshot first, swipeable pills, then description ---- */
+/* ---- mobile carousel (hidden on desktop) ---- */
+.projects__stack {
+  display: none;
+}
+.projects.is-armed:not(.is-entered) .projects__stack {
+  opacity: 0;
+}
+.projects.is-entered .projects__stack {
+  animation: headRise 0.9s var(--ease) 0.25s backwards;
+}
+
+/* ---- tablet & mobile: swipe carousel, then description ---- */
 @media (max-width: 900px) {
   .projects {
     --enter-nav-x: 0px;
@@ -2125,37 +2136,59 @@ img {
     grid-template-columns: minmax(0, 1fr);
     gap: 1.25rem;
   }
-  .projects__frame {
-    order: 1;
-  }
-  /* the pills are hidden on mobile: the title and description right below the
-     screenshot already name the project, and swiping still switches projects */
-  .projects__nav {
-    display: none;
-  }
-  .projects__info {
-    order: 2;
-  }
+
+  /* desktop-only pieces */
+  .projects__frame,
+  .projects__nav,
   .projects__arrow {
     display: none;
   }
-  .frame__screen {
+
+  /* THE CAROUSEL: full screen width, one screenshot centred, the previous
+     and next ones peek in from the sides. Native scroll snap = native swipe,
+     and vertical swipes still scroll the page. */
+  .projects__stack {
+    --slide-w: min(78vw, 460px); /* bigger = less peek, smaller = more peek */
+    order: 1;
+    position: relative; /* JS measures slide positions from here */
+    display: flex;
+    gap: 0.75rem;
+    width: 100vw;
+    max-width: none;
+    margin: -0.5rem 0 -0.5rem calc(50% - 50vw); /* break out to the screen edges */
+    padding: 1rem calc((100vw - var(--slide-w)) / 2);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .projects__stack::-webkit-scrollbar {
+    display: none;
+  }
+  .stack__slide {
+    flex: 0 0 var(--slide-w);
+    margin: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 10px 24px -14px rgba(14, 15, 17, 0.3);
+    scroll-snap-align: center;
+    scroll-snap-stop: always; /* one swipe = one project */
+    transform-origin: center;
+    will-change: transform, opacity;
+  }
+  .stack__slide .frame__screen {
+    aspect-ratio: var(--slide-ar, 16 / 10);
     max-height: none;
   }
 
-  /* SWIPE: horizontal drags on the screenshot / text are handled by JS
-     (prev / next project) while vertical drags still scroll the page */
-  .projects__frame,
+  /* description below, text swaps slide sideways like the carousel */
   .projects__info {
+    order: 2;
     touch-action: pan-y;
-  }
-
-  /* swaps slide sideways instead of up/down */
-  .projects__frame.is-out {
-    transform: translateX(calc(var(--dir, 1) * -32px)) scale(0.97);
-  }
-  .projects__frame.is-in {
-    transform: translateX(calc(var(--dir, 1) * 32px)) scale(0.97);
   }
   .projects__info.is-out > * {
     transform: translateX(calc(var(--dir, 1) * -24px));
@@ -2163,180 +2196,12 @@ img {
   .projects__info.is-in > * {
     transform: translateX(calc(var(--dir, 1) * 24px));
   }
-
-  /* compact pills (also swipeable: native horizontal scroll + snap) */
-  .projects__list {
-    height: auto;
-    flex-direction: row;
-    gap: 0.5rem;
-    padding: 0.4rem calc(50% - 40px);
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y;
-    scroll-snap-type: x mandatory;
-    -webkit-mask-image: linear-gradient(
-      90deg,
-      transparent 0,
-      #000 12%,
-      #000 88%,
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      90deg,
-      transparent 0,
-      #000 12%,
-      #000 88%,
-      transparent 100%
-    );
-  }
-  .project-item {
-    flex: 0 0 auto;
-    width: auto;
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    padding: 0.6rem 1.1rem;
-    white-space: nowrap;
-    border-radius: 999px;
-    transform-origin: center;
-    scroll-snap-stop: always;
-  }
-  .project-item__sub {
-    display: none;
-  }
-  .project-item__title {
-    font-size: 0.85rem;
-  }
-  .project-item.is-active {
-    transform: none;
-    color: #fff;
-    background: var(--ink);
-    border-color: var(--ink);
-    box-shadow: 0 8px 20px rgba(14, 15, 17, 0.25);
-  }
-
   .projects__title {
     font-size: clamp(2.2rem, 11vw, 3rem);
   }
   .projects__desc {
     font-size: 0.9rem;
     line-height: 1.65;
-  }
-}
-
-/* ---- mobile: vertical screenshot stack, next project peeks below ---- */
-.projects__stack {
-  display: none;
-}
-.projects.is-armed:not(.is-entered) .projects__stack {
-  opacity: 0;
-}
-.projects.is-entered .projects__stack {
-  animation: headRise 0.9s var(--ease) 0.25s backwards;
-}
-
-@media (max-width: 900px) {
-  .projects__frame {
-    display: none; /* the stack replaces it */
-  }
-  .projects__stack {
-    --peek: 52px; /* keep equal to PEEK in js/index.js */
-    order: 1;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    max-height: 75svh; /* fallback until JS measures the real height */
-    overflow-x: hidden;
-    overflow-y: auto;
-    scroll-snap-type: y mandatory;
-    scrollbar-width: none;
-    touch-action: pan-y;
-    -webkit-mask-image: linear-gradient(
-      180deg,
-      #000 calc(100% - var(--peek)),
-      rgba(0, 0, 0, 0.45) 100%
-    );
-    mask-image: linear-gradient(
-      180deg,
-      #000 calc(100% - var(--peek)),
-      rgba(0, 0, 0, 0.45) 100%
-    );
-  }
-  .projects__stack::-webkit-scrollbar {
-    display: none;
-  }
-  .stack__slide {
-    flex: none;
-    margin: 0;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 10px 24px -14px rgba(14, 15, 17, 0.3);
-    scroll-snap-align: start;
-    scroll-snap-stop: always; /* one swipe = one project */
-  }
-  .stack__slide .frame__screen {
-    aspect-ratio: var(--slide-ar, 16 / 10);
-    max-height: none;
-  }
-}
-
-@media (max-width: 900px) {
-  /* peek a bit more of the next screenshot (keep equal to PEEK in js) */
-  .projects__stack {
-    --peek: 88px;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-  .stack__slide {
-    transform-origin: 50% 0;
-    will-change: transform, opacity;
-  }
-
-  /* pills: vertical roller, one pill centered, neighbours peek above and below */
-  .projects__list {
-    height: 140px;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0;
-    overflow: hidden;
-    scroll-snap-type: none;
-    touch-action: pan-y; /* the page still scrolls when you swipe here */
-    -webkit-mask-image: linear-gradient(
-      180deg,
-      transparent 0,
-      #000 30%,
-      #000 70%,
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      180deg,
-      transparent 0,
-      #000 30%,
-      #000 70%,
-      transparent 100%
-    );
-  }
-  .project-item {
-    translate: 0 var(--shift, 0px); /* --shift is set by JS */
-    transition:
-      translate 0.55s var(--ease),
-      transform 0.45s var(--ease),
-      opacity 0.35s ease,
-      background 0.3s,
-      border-color 0.3s,
-      color 0.3s;
-  }
-  .project-item[data-dist="1"] {
-    transform: scale(0.92);
-  }
-  .project-item[data-dist="2"] {
-    transform: scale(0.85);
   }
 }
 

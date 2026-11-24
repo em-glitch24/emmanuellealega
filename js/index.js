@@ -592,9 +592,11 @@ if (heroLive && canHover && !reduceMotion) {
 
 /* ==========================================================================
    PROJECTS
+   Desktop : click a card, use the arrows, or scroll the vertical list.
+   Mobile  : the screenshots are a horizontal swipe carousel (native scroll
+             snap, so no touch code is needed). The next and previous
+             screenshots peek in from the sides.
    To add a project: copy one object below and put its screenshot in images/.
-   Navigation: click a card, use the arrows (desktop), scroll/swipe the pill
-   list, or swipe left/right on the screenshot or description (mobile).
    ========================================================================== */
 (() => {
   const projects = [
@@ -651,11 +653,12 @@ if (heroLive && canHover && !reduceMotion) {
   const pad = (n) => String(n).padStart(2, "0");
 
   let active = -1;
-  let lockUntil = 0; // ignore scroll events while a click-scroll is animating
+  let lockUntil = 0; // desktop: ignore list scroll events while we scroll it ourselves
+  let stackLock = 0; // mobile: same, for the carousel
   let ticking = false;
   let swapToken = 0;
 
-  // ---- build the list ----
+  /* ---------- DESKTOP: vertical card list ---------- */
   const items = projects.map((p, i) => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -671,239 +674,15 @@ if (heroLive && canHover && !reduceMotion) {
     return btn;
   });
 
-  // ---- mobile: vertical screenshot stack (next project peeks from below) ----
-  const PEEK = 88;
-  const stack = document.createElement("div");
-  stack.className = "projects__stack";
-  stack.setAttribute("aria-label", "Project screenshots: swipe up or down");
-
-  const slides = projects.map((p, i) => {
-    const slide = document.createElement("figure");
-    slide.className = "stack__slide";
-    slide.innerHTML = `
-      <div class="frame__bar" aria-hidden="true">
-        <span></span><span></span><span></span><em class="frame__url"></em>
-      </div>
-      <div class="frame__screen is-empty"><img class="frame__img" alt="" /></div>`;
-    slide.querySelector(".frame__url").textContent = p.title;
-
-    const shot = slide.querySelector(".frame__img");
-    const shotScreen = slide.querySelector(".frame__screen");
-    shot.addEventListener("load", () => {
-      shot.classList.add("is-on");
-      shotScreen.classList.remove("is-empty");
-      if (i === 0) {
-        // every slide uses the first screenshot's ratio, so they all match
-        stack.style.setProperty(
-          "--slide-ar",
-          `${shot.naturalWidth} / ${shot.naturalHeight}`,
-        );
-        sizeStack();
-      }
-    });
-    shot.alt = `${p.title} screenshot`;
-    shot.src = p.image;
-
-    stack.appendChild(slide);
-    return slide;
-  });
-  frame.before(stack);
-
-  // container height = one slide + the peek of the next
-  function sizeStack() {
-    stack.style.height = mobile.matches
-      ? `${slides[0].offsetHeight + PEEK}px`
-      : "";
-  }
-  new ResizeObserver(() => {
-    if (!mobile.matches) return;
-    sizeStack();
-    stackFx();
-    centerItem(active, false);
-  }).observe(slides[0]);
-  const stackStep = () =>
-    slides.length > 1 ? slides[1].offsetTop - slides[0].offsetTop : 1;
-  let stackLock = 0; // ignore scroll events while we scroll it ourselves
-
-  function stackTo(i, smooth) {
-    stackLock = performance.now() + (smooth ? 800 : 100);
-    stack.scrollTo({
-      top: i * stackStep(),
-      behavior: smooth ? "smooth" : "auto",
-    });
-  }
-
-  let stackTick = false;
-  stack.addEventListener(
-    "scroll",
-    () => {
-      if (stackTick || performance.now() < stackLock) return;
-      stackTick = true;
-      requestAnimationFrame(() => {
-        stackTick = false;
-        const i = Math.max(
-          0,
-          Math.min(
-            projects.length - 1,
-            Math.round(stack.scrollTop / stackStep()),
-          ),
-        );
-        if (i === active) return;
-        select(i, false, "stack");
-        lockUntil = performance.now() + 700; // keep the pill list from fighting back
-        centerItem(i, true);
-      });
-    },
-    { passive: true },
-  );
-
-  // the neighbouring screenshots are zoomed out and dim, and grow as they near the top
-  const FX_SCALE = 0.8; // size of the neighbouring screenshots (1 = full size)
-  const FX_OPACITY = 0.55;
-  let fxTick = false;
-
-  function stackFx() {
-    fxTick = false;
-    if (!mobile.matches) {
-      slides.forEach((s) => {
-        s.style.transform = "";
-        s.style.opacity = "";
-      });
-      return;
-    }
-    const step = stackStep();
-    slides.forEach((s, i) => {
-      const d = i - stack.scrollTop / step; // 0 = current, 1 = next, -1 = previous
-      const t = Math.min(Math.abs(d), 1);
-      s.style.transformOrigin = d > 0 ? "50% 0" : "50% 100%";
-      s.style.transform = `scale(${(1 - (1 - FX_SCALE) * t).toFixed(3)})`;
-      s.style.opacity = (1 - (1 - FX_OPACITY) * t).toFixed(3);
-    });
-  }
-  stack.addEventListener(
-    "scroll",
-    () => {
-      if (fxTick) return;
-      fxTick = true;
-      requestAnimationFrame(stackFx);
-    },
-    { passive: true },
-  );
-  mobile.addEventListener("change", stackFx);
-  stackFx();
-
-  // ---- description ----
-  function setInfo(p) {
-    kindEl.textContent = p.kind;
-    titleEl.textContent = p.title;
-    descEl.textContent = p.description;
-    tagsEl.replaceChildren(
-      ...p.tags.map((t) => {
-        const li = document.createElement("li");
-        li.textContent = t;
-        return li;
-      }),
-    );
-  }
-
-  // writes the project into the frame (image, ratio, url bar) and the info panel
-  function applyProject(p, loaded, probe) {
-    urlEl.textContent = p.title;
-    setInfo(p);
-
-    if (loaded) {
-      screen.style.setProperty(
-        "--ar",
-        `${probe.naturalWidth} / ${probe.naturalHeight}`,
-      );
-      img.src = p.image;
-      img.alt = `${p.title} screenshot`;
-      img.classList.add("is-on");
-      screen.classList.remove("is-empty");
-    } else {
-      img.classList.remove("is-on");
-      screen.style.removeProperty("--ar");
-      screen.classList.add("is-empty");
-    }
-  }
-
-  // whole frame + info slide out, content swaps while hidden, both slide back in
-  function swapProject(i, dir, animate) {
-    const t = ++swapToken;
-    const p = projects[i];
-    section.style.setProperty("--dir", dir);
-
-    const probe = new Image();
-    const loaded = new Promise((res) => {
-      probe.onload = () => res(true);
-      probe.onerror = () => res(false);
-    });
-    probe.src = p.image;
-
-    if (!animate) {
-      loaded.then((ok) => t === swapToken && applyProject(p, ok, probe));
-      return;
-    }
-
-    const els = [frame, info];
-    els.forEach((el) => el.classList.add("is-out"));
-    const wait = new Promise((r) => setTimeout(r, 220));
-
-    Promise.all([loaded, wait]).then(([ok]) => {
-      if (t !== swapToken) return; // a newer click took over
-      applyProject(p, ok, probe);
-      els.forEach((el) => {
-        el.classList.remove("is-out");
-        el.classList.add("is-in");
-      });
-      void frame.offsetWidth; // commit the start state
-      els.forEach((el) => el.classList.remove("is-in")); // release, animates to rest
-    });
-  }
-
   function centerItem(i, smooth) {
-    if (mobile.matches) {
-      // vertical roller: slide the pills so pill i sits in the middle
-      const h = items[0].offsetHeight;
-      const step =
-        items.length > 1 ? items[1].offsetTop - items[0].offsetTop : h;
-      list.style.setProperty(
-        "--shift",
-        `${list.clientHeight / 2 - h / 2 - i * step}px`,
-      );
-      return;
-    }
+    if (mobile.matches) return; // the cards are hidden on mobile
     list.scrollTo({
       top: items[i].offsetTop - (list.clientHeight - items[i].offsetHeight) / 2,
       behavior: smooth ? "smooth" : "auto",
     });
   }
 
-  function select(i, scrollToIt, from) {
-    i = Math.max(0, Math.min(projects.length - 1, i));
-    if (i === active) return;
-    const first = active === -1;
-    const dir = first || i > active ? 1 : -1;
-    active = i;
-
-    items.forEach((el, idx) => {
-      const d = Math.abs(idx - i);
-      el.dataset.dist = Math.min(d, 2);
-      el.classList.toggle("is-active", d === 0);
-      el.setAttribute("aria-current", d === 0 ? "true" : "false");
-    });
-    count.textContent = `${pad(i + 1)} / ${pad(projects.length)}`;
-
-    swapProject(i, dir, !first);
-
-    if (scrollToIt) {
-      lockUntil = performance.now() + 700;
-      centerItem(i, true);
-    }
-    if (mobile.matches && from !== "stack") stackTo(i, !first);
-  }
-
-  // ---- scrolling / swiping the list picks the item nearest the centre ----
+  // scrolling the list picks the card nearest the centre
   list.addEventListener(
     "scroll",
     () => {
@@ -927,36 +706,191 @@ if (heroLive && canHover && !reduceMotion) {
     { passive: true },
   );
 
-  // ---- swipe left / right on the screenshot or the description ----
-  // Next project on swipe left, previous on swipe right. Mostly-vertical
-  // drags are ignored so the page still scrolls normally.
-  const SWIPE_MIN = 45; // px of horizontal travel
-  const SWIPE_RATIO = 1.3; // horizontal must beat vertical by this factor
-  let touch = null;
+  /* ---------- MOBILE: horizontal swipe carousel ---------- */
+  const FX_SCALE = 0.9; // size of the neighbouring screenshots (1 = full size)
+  const FX_OPACITY = 0.55; // brightness of the neighbouring screenshots
 
-  function onTouchStart(e) {
-    if (e.touches.length !== 1) {
-      touch = null;
+  const stack = document.createElement("div");
+  stack.className = "projects__stack";
+  stack.setAttribute("aria-label", "Project screenshots, swipe sideways");
+
+  const slides = projects.map((p, i) => {
+    const slide = document.createElement("figure");
+    slide.className = "stack__slide";
+    slide.innerHTML = `
+      <div class="frame__bar" aria-hidden="true">
+        <span></span><span></span><span></span><em class="frame__url"></em>
+      </div>
+      <div class="frame__screen is-empty"><img class="frame__img" alt="" /></div>`;
+    slide.querySelector(".frame__url").textContent = p.title;
+
+    const shot = slide.querySelector(".frame__img");
+    const shotScreen = slide.querySelector(".frame__screen");
+    shot.addEventListener("load", () => {
+      shot.classList.add("is-on");
+      shotScreen.classList.remove("is-empty");
+      // every slide uses the first screenshot's ratio so they all match
+      if (i === 0) {
+        stack.style.setProperty(
+          "--slide-ar",
+          `${shot.naturalWidth} / ${shot.naturalHeight}`,
+        );
+      }
+    });
+    shot.alt = `${p.title} screenshot`;
+    shot.src = p.image;
+
+    stack.appendChild(slide);
+    return slide;
+  });
+  frame.before(stack);
+
+  // distance between two slides = how far one swipe scrolls
+  const stackStep = () =>
+    slides.length > 1 ? slides[1].offsetLeft - slides[0].offsetLeft : 0;
+
+  function stackTo(i, smooth) {
+    const step = stackStep();
+    if (step <= 0) return;
+    stackLock = performance.now() + (smooth ? 800 : 100);
+    stack.scrollTo({ left: i * step, behavior: smooth ? "smooth" : "auto" });
+  }
+
+  // neighbours are smaller and dimmer, and grow as they slide to the middle
+  function stackFx() {
+    const step = stackStep();
+    if (!mobile.matches || step <= 0) {
+      slides.forEach((s) => {
+        s.style.transform = "";
+        s.style.opacity = "";
+      });
       return;
     }
-    touch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    const pos = stack.scrollLeft / step; // 0 = first slide centred, 1 = second ...
+    slides.forEach((s, i) => {
+      const t = Math.min(Math.abs(i - pos), 1);
+      s.style.transform = `scale(${(1 - (1 - FX_SCALE) * t).toFixed(3)})`;
+      s.style.opacity = (1 - (1 - FX_OPACITY) * t).toFixed(3);
+    });
   }
-  function onTouchEnd(e) {
-    if (!touch) return;
-    const dx = e.changedTouches[0].clientX - touch.x;
-    const dy = e.changedTouches[0].clientY - touch.y;
-    touch = null;
-    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy) * SWIPE_RATIO)
-      return;
-    select(active + (dx < 0 ? 1 : -1), true);
-  }
-  [frame, info].forEach((el) => {
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchend", onTouchEnd, { passive: true });
-    el.addEventListener("touchcancel", () => (touch = null), { passive: true });
-  });
 
-  // ---- arrows + keyboard ----
+  let stackTick = false;
+  stack.addEventListener(
+    "scroll",
+    () => {
+      if (stackTick) return;
+      stackTick = true;
+      requestAnimationFrame(() => {
+        stackTick = false;
+        stackFx();
+        const step = stackStep();
+        if (step <= 0 || performance.now() < stackLock) return;
+        const i = Math.max(
+          0,
+          Math.min(projects.length - 1, Math.round(stack.scrollLeft / step)),
+        );
+        if (i !== active) select(i, false, "stack");
+      });
+    },
+    { passive: true },
+  );
+
+  /* ---------- shared: description + select ---------- */
+  function setInfo(p) {
+    kindEl.textContent = p.kind;
+    titleEl.textContent = p.title;
+    descEl.textContent = p.description;
+    tagsEl.replaceChildren(
+      ...p.tags.map((t) => {
+        const li = document.createElement("li");
+        li.textContent = t;
+        return li;
+      }),
+    );
+  }
+
+  // writes the project into the desktop frame (image, ratio, url bar) and the info panel
+  function applyProject(p, loaded, probe) {
+    urlEl.textContent = p.title;
+    setInfo(p);
+
+    if (loaded) {
+      screen.style.setProperty(
+        "--ar",
+        `${probe.naturalWidth} / ${probe.naturalHeight}`,
+      );
+      img.src = p.image;
+      img.alt = `${p.title} screenshot`;
+      img.classList.add("is-on");
+      screen.classList.remove("is-empty");
+    } else {
+      img.classList.remove("is-on");
+      screen.style.removeProperty("--ar");
+      screen.classList.add("is-empty");
+    }
+  }
+
+  // frame + info slide out, content swaps while hidden, both slide back in
+  function swapProject(i, dir, animate) {
+    const t = ++swapToken;
+    const p = projects[i];
+    section.style.setProperty("--dir", dir);
+
+    const probe = new Image();
+    const loaded = new Promise((res) => {
+      probe.onload = () => res(true);
+      probe.onerror = () => res(false);
+    });
+    probe.src = p.image;
+
+    if (!animate) {
+      loaded.then((ok) => t === swapToken && applyProject(p, ok, probe));
+      return;
+    }
+
+    const els = [frame, info];
+    els.forEach((el) => el.classList.add("is-out"));
+    const wait = new Promise((r) => setTimeout(r, 220));
+
+    Promise.all([loaded, wait]).then(([ok]) => {
+      if (t !== swapToken) return; // a newer change took over
+      applyProject(p, ok, probe);
+      els.forEach((el) => {
+        el.classList.remove("is-out");
+        el.classList.add("is-in");
+      });
+      void frame.offsetWidth; // commit the start state
+      els.forEach((el) => el.classList.remove("is-in")); // release, animates to rest
+    });
+  }
+
+  // from === "stack" means the change came from swiping the carousel itself
+  function select(i, scrollToIt, from) {
+    i = Math.max(0, Math.min(projects.length - 1, i));
+    if (i === active) return;
+    const first = active === -1;
+    const dir = first || i > active ? 1 : -1;
+    active = i;
+
+    items.forEach((el, idx) => {
+      const d = Math.abs(idx - i);
+      el.dataset.dist = Math.min(d, 2);
+      el.classList.toggle("is-active", d === 0);
+      el.setAttribute("aria-current", d === 0 ? "true" : "false");
+    });
+    count.textContent = `${pad(i + 1)} / ${pad(projects.length)}`;
+
+    swapProject(i, dir, !first);
+
+    if (mobile.matches) {
+      if (from !== "stack") stackTo(i, !first);
+    } else if (scrollToIt) {
+      lockUntil = performance.now() + 700;
+      centerItem(i, true);
+    }
+  }
+
+  /* ---------- arrows, keyboard, breakpoint change ---------- */
   document
     .getElementById("projPrev")
     .addEventListener("click", () => select(active - 1, true));
@@ -973,11 +907,18 @@ if (heroLive && canHover && !reduceMotion) {
   });
 
   mobile.addEventListener("change", () => {
-    centerItem(active, false);
-    sizeStack();
     if (mobile.matches) stackTo(active, false);
+    else centerItem(active, false);
+    stackFx();
   });
-  // ---- entrance animation (.is-entered, not .is-in: the frame swap uses that) ----
+  window.addEventListener("resize", () => {
+    if (mobile.matches) {
+      stackTo(active, false); // keep the current slide centred after a rotate
+      stackFx();
+    }
+  });
+
+  /* ---------- entrance animation (.is-entered, not .is-in: the swap uses that) ---------- */
   if (hasObserver && !reduceMotion) {
     section.classList.add("is-armed");
     new IntersectionObserver(
@@ -990,15 +931,17 @@ if (heroLive && canHover && !reduceMotion) {
     ).observe(section);
   }
 
-  // ---- init ----
+  /* ---------- init ---------- */
   select(0, false);
+  stackFx();
   requestAnimationFrame(() => centerItem(0, false));
   window.addEventListener("load", () => {
     projects.forEach((p) => {
       new Image().src = p.image; // warm the cache
     });
+    centerItem(active, false);
+    stackFx();
   });
-  window.addEventListener("load", () => centerItem(active, false));
 })();
 
 /* ==========================================================================
