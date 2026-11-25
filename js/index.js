@@ -202,9 +202,10 @@ if (heroLive && canHover && !reduceMotion) {
     }).observe(hero);
   }
   document.addEventListener("visibilitychange", () => {
-    heroVisible = !document.hidden;
+    heroVisible = !document.hidden && !hero.classList.contains("is-covered");
     sync();
   });
+  hero.addEventListener("herovisibility", sync); // fired by the cover effect below
 
   sync();
 })();
@@ -927,7 +928,7 @@ if (heroLive && canHover && !reduceMotion) {
         section.classList.add("is-entered");
         io.disconnect();
       },
-      { threshold: 0.25 },
+      { threshold: 0, rootMargin: "0px 0px -60% 0px" },
     ).observe(section);
   }
 
@@ -944,6 +945,62 @@ if (heroLive && canHover && !reduceMotion) {
   });
 })();
 
+/* ==========================================================================
+   HERO COVER
+   Browsers with CSS scroll-driven animations do the visuals themselves (see
+   style.css). This block (1) pauses the hero's work once it is fully hidden
+   and (2) for older browsers, feeds a smoothed 0..1 value into --cover.
+   ========================================================================== */
+(() => {
+  const projects = document.getElementById("projects");
+  const photo = document.getElementById("photoStack");
+  if (!hero || !projects || reduceMotion) return;
+
+  const native = CSS.supports("animation-timeline: scroll()");
+  let target = 0;
+  let cur = 0;
+  let raf = 0;
+  let ticking = false;
+
+  function setCovered(covered) {
+    if (covered === hero.classList.contains("is-covered")) return;
+    hero.classList.toggle("is-covered", covered);
+    heroVisible = !covered && !document.hidden;
+    if (photo) photo.classList.toggle("is-paused", covered);
+    hero.dispatchEvent(new Event("herovisibility")); // pauses video + dust
+  }
+
+  // fallback only: ease toward the scroll position so wheel steps look smooth
+  function paint() {
+    raf = 0;
+    cur += (target - cur) * 0.2;
+    if (Math.abs(target - cur) < 0.001) cur = target;
+    const v = cur.toFixed(3);
+    hero.style.setProperty("--cover", v);
+    projects.style.setProperty("--cover", v);
+    if (cur !== target) raf = requestAnimationFrame(paint);
+  }
+
+  function update() {
+    ticking = false;
+    const h = hero.offsetHeight || window.innerHeight;
+    const p = Math.min(1, Math.max(0, window.scrollY / h));
+    setCovered(p >= 1);
+    if (!native) {
+      target = p;
+      if (!raf) raf = requestAnimationFrame(paint);
+    }
+  }
+
+  const request = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(update);
+  };
+  window.addEventListener("scroll", request, { passive: true });
+  window.addEventListener("resize", request);
+  update();
+})();
 /* ==========================================================================
    SCROLL REVEAL (skills + contact)
    Items are only hidden once JS has armed the section, so nothing stays

@@ -306,6 +306,96 @@ img {
   );
 }
 
+/* ---- HERO COVER: the hero stays pinned and Projects slides up over it ----
+   Browsers with scroll-driven animations run this on the GPU, tied directly
+   to the scroll position. Others use the --cover variable set by JS. */
+.hero {
+  --cover: 0;
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  transform-origin: 50% 0;
+  transform: scale(calc(1 - var(--cover) * 0.08)); /* fallback */
+  will-change: transform;
+}
+/* the dim layer fades with opacity only (cheap), not a changing colour */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: rgb(14 15 17 / 0.75);
+  opacity: var(--cover); /* fallback */
+}
+.hero.is-covered {
+  visibility: hidden; /* fully covered: stop painting it */
+}
+
+.projects {
+  --cover: 0;
+  z-index: 1;
+  border-radius: calc((1 - var(--cover)) * 28px) calc((1 - var(--cover)) * 28px)
+    0 0; /* fallback */
+  box-shadow: 0 -30px 60px -20px rgba(0, 0, 0, 0.55);
+}
+
+/* native, GPU-driven version */
+@supports (animation-timeline: scroll()) {
+  .hero,
+  .hero::after,
+  .projects {
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 100svh;
+  }
+  .hero {
+    animation-name: coverHero;
+  }
+  .hero::after {
+    animation-name: coverDim;
+  }
+  .projects {
+    animation-name: coverSheet;
+  }
+}
+@keyframes coverHero {
+  to {
+    transform: scale(0.92);
+  }
+}
+@keyframes coverDim {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes coverSheet {
+  from {
+    border-radius: 28px 28px 0 0;
+  }
+  to {
+    border-radius: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero {
+    position: relative;
+    transform: none;
+    animation: none;
+    will-change: auto;
+  }
+  .hero::after {
+    display: none;
+  }
+  .projects {
+    border-radius: 0;
+    box-shadow: none;
+    animation: none;
+  }
+}
+
 /* HERO BACKGROUND, 3 plans. JS sets data-bg on .hero to the best one that
    really loaded, so a missing file never leaves a blank hero:
      A  data-bg="video"  .hero__video   (assets/video/hero-bg.webm)
