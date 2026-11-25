@@ -60,7 +60,15 @@
 
     <main>
       <!-- ============ HERO ============ -->
-      <section class="hero" id="home" data-bg="video">
+      <!-- HERO BACKGROUND SETTINGS
+     data-bg-video : path to the video. Leave it "" (or delete it) for image only.
+     data-bg-image : path to the image. Also used as the video's poster while it loads. -->
+      <section
+        class="hero"
+        id="home"
+        data-bg-video="images/herobgvi.mp4"
+        data-bg-image="images/herobg3.jpg"
+      >
         <video
           class="hero__video"
           id="heroVideo"
@@ -69,17 +77,9 @@
           loop
           playsinline
           preload="auto"
-          poster="images/herobg-poster.jpg"
           aria-hidden="true"
-        >
-          <source src="images/herobgvid.mp4" type="video/mp4" />
-        </video>
-        <div
-          class="hero__image"
-          id="heroImage"
-          data-src="images/herobg-poster.jpg"
-          aria-hidden="true"
-        ></div>
+        ></video>
+        <div class="hero__image" id="heroImage" aria-hidden="true"></div>
         <div class="hero__overlay" aria-hidden="true"></div>
 
         <!-- Live background: default look, and the fallback when no video loads -->

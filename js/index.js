@@ -113,18 +113,24 @@ if (heroLive && canHover && !reduceMotion) {
   });
 }
 
-// HERO BACKGROUND: plan A video, plan B image, plan C the live CSS radar.
-// Waves are the default. Each plan only takes over once its file has really
-// loaded, and the page falls back to the next plan if it fails or stalls,
-// so a missing file never leaves a blank hero.
+// HERO BACKGROUND. Two paths are set in the HTML on the hero section:
+//   data-bg-video  and  data-bg-image
+// Order of preference: video, then image, then the live CSS background.
+//  * no video path (or empty)      -> the image is used
+//  * video file missing or stalled -> the image is used
+//  * image missing too             -> the live CSS background is used
 (() => {
   const video = document.getElementById("heroVideo");
   const image = document.getElementById("heroImage");
-  const IMAGE_URL = image && image.dataset.src;
+  const VIDEO_URL = (hero.dataset.bgVideo || "").trim();
+  const IMAGE_URL = (hero.dataset.bgImage || "").trim();
 
-  const useVideo = !!video && !reduceMotion;
-  let videoFailed = !useVideo; // true = skip the video, use image or silk
-  let imageReady = false;
+  const useVideo = !!video && !!VIDEO_URL && !reduceMotion;
+  let videoFailed = !useVideo; // true = skip the video
+  let imageFailed = !IMAGE_URL; // true = skip the image
+
+  // no video wanted: remove it so it never loads
+  if (video && !useVideo) video.remove();
 
   // floating dust: a handful of tiny specks over the image. Kept minimal
   // on purpose (fewer on phones) and skipped for reduced motion.
@@ -159,40 +165,43 @@ if (heroLive && canHover && !reduceMotion) {
     small.addEventListener("change", buildDust);
   }
 
+  // picks which background is shown and keeps the video playing / paused
   function sync() {
-    const bg = !videoFailed ? "video" : imageReady ? "image" : "live";
+    const bg = !videoFailed ? "video" : !imageFailed ? "image" : "live";
     hero.dataset.bg = bg;
     if (dust) dust.classList.toggle("is-paused", !heroVisible);
-    if (!video) return;
+    if (!useVideo || !video.isConnected) return;
     if (bg === "video" && heroVisible) video.play().catch(() => {});
     else video.pause();
   }
-  // plan A: video. Stay in video mode while it loads; only give up on an
-  // error, or if nothing has loaded after 6 seconds.
-  if (useVideo) {
-    const fail = () => {
-      videoFailed = true;
-      sync();
-    };
-    video.addEventListener("error", fail, true);
-    setTimeout(() => {
-      if (video.readyState < 2) fail();
-    }, 6000);
-  }
 
-  // plan B: image (probed first, so a missing file never shows a broken box)
-  if (image && IMAGE_URL) {
+  // the image: set it right away, and only fall back if the file is missing
+  if (!imageFailed) {
+    image.style.backgroundImage = `url("${IMAGE_URL}")`;
     const probe = new Image();
-    probe.onload = () => {
-      image.style.backgroundImage = `url("${IMAGE_URL}")`;
-      imageReady = true;
-      sync();
-    };
     probe.onerror = () => {
-      imageReady = false;
+      imageFailed = true;
+      image.style.backgroundImage = "";
       sync();
     };
     probe.src = IMAGE_URL;
+  }
+
+  // the video: shown while it loads (the image is its poster), dropped on an
+  // error or if nothing has loaded after 6 seconds
+  if (useVideo) {
+    if (!imageFailed) video.poster = IMAGE_URL;
+    const fail = () => {
+      videoFailed = true;
+      video.removeAttribute("src");
+      video.load();
+      sync();
+    };
+    video.addEventListener("error", fail);
+    video.src = VIDEO_URL;
+    setTimeout(() => {
+      if (video.readyState < 2) fail();
+    }, 6000);
   }
 
   if (hasObserver) {
@@ -205,7 +214,7 @@ if (heroLive && canHover && !reduceMotion) {
     heroVisible = !document.hidden && !hero.classList.contains("is-covered");
     sync();
   });
-  hero.addEventListener("herovisibility", sync); // fired by the cover effect below
+  hero.addEventListener("herovisibility", sync); // fired by the cover effect
 
   sync();
 })();
@@ -603,7 +612,7 @@ if (heroLive && canHover && !reduceMotion) {
   const projects = [
     {
       title: "HRIS System",
-      kind: "Internship project",
+      kind: "Company project",
       description:
         "Human Resource Information System that centralizes employee management, attendance, payroll, recruitment, performance, and compliance reports. Payroll is computed automatically from attendance, with configurable tax and government contributions.",
       tags: ["ERP module", "Payroll", "Attendance"],
