@@ -1070,6 +1070,26 @@ armReveal("contact", (i) => i * 80);
 })();
 
 /* ==========================================================================
+   ABOUT BACKGROUND
+   Reads data-bg-image from the section. The image is only applied once the
+   file has really loaded, so a missing file or an empty path keeps the
+   gradient.
+   ========================================================================== */
+(() => {
+  const section = document.getElementById("about");
+  const bg = section && section.querySelector(".about__bg");
+  const url = section && (section.dataset.bgImage || "").trim();
+  if (!bg || !url) return;
+
+  const probe = new Image();
+  probe.onload = () => {
+    bg.style.backgroundImage = `url("${url}")`;
+    section.classList.add("has-bg");
+  };
+  probe.src = url;
+})();
+
+/* ==========================================================================
    INTRO: PLAY ON EVERY PAGE LOAD
    ========================================================================== */
 (() => {

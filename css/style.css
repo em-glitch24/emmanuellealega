@@ -2843,6 +2843,24 @@ img {
   color: var(--ink);
 }
 
+/* optional background image behind the portrait (set by JS only when the
+   file really loads, otherwise the gradient below stays as it is) */
+.about__bg {
+  position: absolute;
+  inset: 0;
+  background: center / cover no-repeat; /* url is set by JS */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+.about.has-bg .about__bg {
+  opacity: 1;
+}
+/* with an image, the pastel gradient is not needed */
+.about.has-bg .about__aurora {
+  display: none;
+}
+
 /* pastel aurora */
 .about__aurora i {
   position: absolute;
@@ -3181,7 +3199,7 @@ img {
     linear-gradient(180deg, var(--bg) 0%, transparent 25%),
     /* dark tint: raise 0.82 for darker, lower to show more image */
     linear-gradient(rgba(14, 15, 17, 0.82), rgba(14, 15, 17, 0.82)),
-    url("../images/footer.jpg") center / cover no-repeat,
+    url("../images/footerbg1.jpg") center / cover no-repeat,
     var(--bg);
 }
 .contact::after {
